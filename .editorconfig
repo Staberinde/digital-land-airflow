@@ -1,0 +1,7 @@
+[*]
+indent_style = space
+trim_trailing_whitespace = false
+insert_final_newline = true
+
+[*.py]
+indent_size = 4
