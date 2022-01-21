@@ -1,10 +1,11 @@
+import json
 import os
 from datetime import datetime
 from tempfile import TemporaryDirectory
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.models.variable import Variable
+from airflow.models import Variable
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 
@@ -18,6 +19,7 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 )
 def callable_clone_task():
     import os
+
     from git import Repo
 
     pipeline_name = Variable.get("pipeline_name")
@@ -39,6 +41,7 @@ def callable_clone_task():
 )
 def callable_collect_task():
     import os
+
     from specification import get_specification_path
     from digital_land.api import API
 
@@ -71,8 +74,9 @@ def sync_s3():
     system_site_packages=False
 )
 def callable_collection_task():
+    from digital_land.api import API
 
-    api = task.xcom_pull("api_instance")
+    api = API(**json.loads(task.xcom_pull("api_instance")))
     collection_repository_path = task.xcom_pull("collection_repository_path")
     api.pipeline_collection_save_csv_cmd(
         collection_dir=collection_repository_path
@@ -106,20 +110,26 @@ def callable_dataset_task():
 
 
 
-pipeline_name = 'listed-buildings'
-with (
-    DAG(
-        pipeline_name,
-        start_date=datetime.now()
-    ) as BaseDag,
-    TemporaryDirectory(prefix=f"{pipeline_name}_tempdir")
-):
-    clone = callable_clone_task()
-    collect = callable_collect_task()
-    collection = callable_collection_task()
-    commit_collect = callable_commit_task()
-    commit_collection = callable_commit_task()
-    clone >> collect
-    collect >> commit_collect
-    commit_collect >> collection
-    collection >> commit_collection
+
+pipelines = [
+    'listed-buildings',
+]
+for pipeline_name in pipelines:
+    with (
+        DAG(
+            pipeline_name,
+            start_date=datetime.now()
+        ) as InstantiatedDag,
+        TemporaryDirectory(prefix=f"{pipeline_name}_tempdir")
+    ):
+        clone = callable_clone_task()
+        collect = callable_collect_task()
+        collection = callable_collection_task()
+        commit_collect = callable_commit_task()
+        commit_collection = callable_commit_task()
+        clone >> collect
+        collect >> commit_collect
+        commit_collect >> collection
+        collection >> commit_collection
+
+        globals()[f"{pipeline_name}Dag"] = InstantiatedDag
