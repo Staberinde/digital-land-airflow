@@ -23,12 +23,12 @@ def callable_clone_task(**kwargs):
 
     pipeline_name = dag._dag_id
     repo_name = f"{pipeline_name}-collection"
-    tempdir = TemporaryDirectory(prefix=f"{pipeline_name}_{run_id}")
-    repo_path = os.path.join(tempdir, repo_name)
+    # TODO add onsuccess branch to delete this dir
+    repo_path = os.path.join("/tmp", f"{pipeline_name}_{run_id}", repo_name)
+    os.makedirs(repo_path)
     repo = Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
     task.xcom_push("collection_repository", repo)
     task.xcom_push("collection_repository_path", repo_path)
-    task.xcom_push("dag_run_tempdir", tempdir)
 
 
 @task(
