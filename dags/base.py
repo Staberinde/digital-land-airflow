@@ -1,57 +1,50 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.models import Variable
+from git import Repo
+
+from digital_land.api import DigitalLandApi
+from digital_land.specification import specification_path
+
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 
-
-@task.virtualenv(
+@task(
     task_id="clone",
-    requirements=[
-        "GitPython",
-    ],
-    system_site_packages=False
 )
-def callable_clone_task():
-    import os
+def callable_clone_task(**kwargs):
+    dag = kwargs['dag']
+    run_id = kwargs['run_id']
 
-    from git import Repo
 
-    pipeline_name = Variable.get("pipeline_name")
-    tempdir = Variable.get("dag_temp_dir")
+    pipeline_name = dag._dag_id
     repo_name = f"{pipeline_name}-collection"
+    tempdir = TemporaryDirectory(prefix=f"{pipeline_name}_{run_id}")
     repo_path = os.path.join(tempdir, repo_name)
     repo = Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
     task.xcom_push("collection_repository", repo)
     task.xcom_push("collection_repository_path", repo_path)
+    task.xcom_push("dag_run_tempdir", tempdir)
 
 
-@task.virtualenv(
+@task(
     task_id="collect",
-    requirements=[
-        "git+https://github.com/digital-land/digital-land-python@refactor-cli-into-class",
-        "git+https://github.com/digital-land/specification"
-    ],
-    system_site_packages=False
 )
-def callable_collect_task():
-    import os
+def callable_collect_task(**kwargs):
+    dag = kwargs['dag']
 
-    from specification import get_specification_path
-    from digital_land.api import API
 
-    pipeline_name = Variable.get("pipeline_name")
+    pipeline_name = dag.id
     collection_repository_path = task.xcom_pull("collection_repository_path")
-    api = API(
+    api = DigitalLandApi(
         debug=False,
         pipeline_name=pipeline_name,
         pipeline_dir=collection_repository_path,
-        specification_dir=get_specification_path()
+        specification_dir=specification_path
     )
     task.xcom_push("api_instance", api)
     api.collect_cmd(
@@ -65,30 +58,20 @@ def sync_s3():
     # TODO implement something along lines of https://airflow.apache.org/docs/apache-airflow/1.10.2/integration.html?highlight=s3#s3hook here
 
 
-@task.virtualenv(
+@task(
     task_id="collection",
-    requirements=[
-        "git+https://github.com/digital-land/digital-land-python@refactor-cli-into-class",
-        "git+https://github.com/digital-land/specification"
-    ],
-    system_site_packages=False
 )
 def callable_collection_task():
-    from digital_land.api import API
 
-    api = API(**json.loads(task.xcom_pull("api_instance")))
+    api = DigitalLandApi(**json.loads(task.xcom_pull("api_instance")))
     collection_repository_path = task.xcom_pull("collection_repository_path")
     api.pipeline_collection_save_csv_cmd(
         collection_dir=collection_repository_path
     )
 
 
-@task.virtualenv(
+@task(
     task_id="commit",
-    requirements=[
-        "gitPython"
-    ],
-    system_site_packages=False
 )
 def callable_commit_task():
     repo = task.xcom_pull("collection_repository")
@@ -98,11 +81,8 @@ def callable_commit_task():
         repo.remotes["origin"].push()
 
 
-@task.virtualenv(
+@task(
     task_id="dataset",
-    requirements=[
-    ],
-    system_site_packages=False
 )
 def callable_dataset_task():
     pass
@@ -118,6 +98,7 @@ for pipeline_name in pipelines:
     with (
         DAG(
             pipeline_name,
+            schedule_interval=timedelta(days=1),
             start_date=datetime.now()
         ) as InstantiatedDag,
         TemporaryDirectory(prefix=f"{pipeline_name}_tempdir")
@@ -132,4 +113,5 @@ for pipeline_name in pipelines:
         commit_collect >> collection
         collection >> commit_collection
 
+        # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{pipeline_name}Dag"] = InstantiatedDag

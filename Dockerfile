@@ -15,3 +15,6 @@ RUN set -xe; \
         libsqlite3-mod-spatialite
 
 USER airflow
+
+COPY ./requirements.txt requirements.txt
+RUN pip install --upgrade -r ./requirements.txt

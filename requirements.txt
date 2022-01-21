@@ -1,0 +1,3 @@
+git+https://github.com/digital-land/digital-land-python@domain-driven-design-refactoring
+git+https://github.com/digital-land/specification@domain-driven-design-refactoring-setup.py
+GitPython~=3.1.0
