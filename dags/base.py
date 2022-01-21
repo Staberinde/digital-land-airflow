@@ -92,7 +92,7 @@ def callable_dataset_task():
 
 
 pipelines = [
-    'listed-buildings',
+    'listed-building',
 ]
 for pipeline_name in pipelines:
     with (
