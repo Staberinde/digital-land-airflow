@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 from datetime import datetime, timedelta
@@ -19,16 +20,15 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 def callable_clone_task(**kwargs):
     dag = kwargs['dag']
     run_id = kwargs['run_id']
-
-
+    ti = kwargs['ti']
     pipeline_name = dag._dag_id
     repo_name = f"{pipeline_name}-collection"
     # TODO add onsuccess branch to delete this dir
     repo_path = os.path.join("/tmp", f"{pipeline_name}_{run_id}", repo_name)
+
     os.makedirs(repo_path)
     repo = Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
-    task.xcom_push("collection_repository", repo)
-    task.xcom_push("collection_repository_path", repo_path)
+    ti.xcom_push("collection_repository_path", repo_path)
 
 
 @task(
@@ -36,21 +36,36 @@ def callable_clone_task(**kwargs):
 )
 def callable_collect_task(**kwargs):
     dag = kwargs['dag']
+    ti = kwargs['ti']
+    pipeline_name = dag._dag_id
 
+    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
+    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
+    assert os.path.exists(pipeline_dir)
 
-    pipeline_name = dag.id
-    collection_repository_path = task.xcom_pull("collection_repository_path")
+    logging.info(
+        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
+        f"directory: {pipeline_dir} and specification_directory {specification_path}"
+    )
     api = DigitalLandApi(
         debug=False,
         pipeline_name=pipeline_name,
-        pipeline_dir=collection_repository_path,
+        pipeline_dir=pipeline_dir,
         specification_dir=specification_path
     )
-    task.xcom_push("api_instance", api)
-    api.collect_cmd(
-        endpoint_path=os.path.join(collection_repository_path, "collection/endpoint.csv"),
-        collection_dir=collection_repository_path
+
+    endpoint_path = os.path.join(collection_repository_path, "collection/endpoint.csv")
+    collection_dir = os.path.join(collection_repository_path, 'collection')
+
+    logging.info(
+        f"Calling collect_cmd with endpoint_path {endpoint_path} and collection_dir {collection_dir}"
     )
+
+    api.collect_cmd(
+        endpoint_path=endpoint_path,
+        collection_dir=collection_dir
+    )
+    ti.xcom_push("api_instance", str(api))
 
 
 def sync_s3():
@@ -61,20 +76,33 @@ def sync_s3():
 @task(
     task_id="collection",
 )
-def callable_collection_task():
+def callable_collection_task(**kwargs):
+    ti = kwargs['ti']
+    api_constructor_args = json.loads(ti.xcom_pull(key="api_instance"))
 
-    api = DigitalLandApi(**json.loads(task.xcom_pull("api_instance")))
-    collection_repository_path = task.xcom_pull("collection_repository_path")
+    logging.info(
+        f"Instantiating DigitalLandApi for pipeline {api_constructor_args['pipeline_name']} using pipeline "
+        f"directory: {api_constructor_args['pipeline_dir']} and specification_directory {api_constructor_args['specification_dir']}"
+    )
+    api = DigitalLandApi(**api_constructor_args)
+    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
+
+    collection_dir = os.path.join(collection_repository_path, 'collection')
+    logging.info(
+        f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"
+    )
     api.pipeline_collection_save_csv_cmd(
-        collection_dir=collection_repository_path
+        collection_dir=collection_dir
     )
 
 
 @task(
     task_id="commit",
 )
-def callable_commit_task():
-    repo = task.xcom_pull("collection_repository")
+def callable_commit_task(**kwargs):
+    ti = kwargs['ti']
+    repo = ti.xcom_pull(key="collection_repository_path")
+    repo = Repo(repo)
     # TODO replace with branch python operator
     if ENVIRONMENT == "production":
         repo.index.commit("initial commit")
@@ -95,14 +123,11 @@ pipelines = [
     'listed-building',
 ]
 for pipeline_name in pipelines:
-    with (
-        DAG(
-            pipeline_name,
-            schedule_interval=timedelta(days=1),
-            start_date=datetime.now()
-        ) as InstantiatedDag,
-        TemporaryDirectory(prefix=f"{pipeline_name}_tempdir")
-    ):
+    with DAG(
+        pipeline_name,
+        schedule_interval=timedelta(days=1),
+        start_date=datetime.now()
+    ) as InstantiatedDag:
         clone = callable_clone_task()
         collect = callable_collect_task()
         collection = callable_collection_task()

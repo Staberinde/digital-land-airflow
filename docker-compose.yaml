@@ -62,6 +62,7 @@ x-airflow-common:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ~/.netrc:/home/airflow/.netrc:ro # TODO is this the best strategy for auth when pushing?
   user: $UID
   depends_on:
     &airflow-common-depends-on
