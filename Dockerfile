@@ -14,7 +14,14 @@ RUN set -xe; \
         libspatialite-dev \
         libsqlite3-mod-spatialite
 
-USER airflow
+# We need this to match the executing UID as otherwise
+# we can't use the python python packages we install here
+ARG EXECUTION_UID=1000
 
-COPY ./requirements.txt requirements.txt
-RUN pip install --upgrade -r ./requirements.txt
+RUN chown -R ${EXECUTION_UID} /opt/airflow
+USER ${EXECUTION_UID}
+ENV HOME=/opt/airflow
+ENV PATH=$PATH:/opt/airflow/.local/bin/
+
+COPY ./setup.py setup.py
+RUN pip install --upgrade .[test]

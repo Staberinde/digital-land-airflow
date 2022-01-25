@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from airflow import DAG
 from airflow.decorators import task
 from git import Repo
+from humps import pascalize
 
 from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
@@ -119,6 +120,10 @@ def callable_dataset_task():
 
 
 
+def kebab_to_pascal_case(kebab_case_str):
+    return pascalize(kebab_case_str.replace('-', '_'))
+
+
 pipelines = [
     'listed-building',
 ]
@@ -139,4 +144,4 @@ for pipeline_name in pipelines:
         collection >> commit_collection
 
         # Airflow likes to be able to find its DAG's as module scoped variables
-        globals()[f"{pipeline_name}Dag"] = InstantiatedDag
+        globals()[f"{kebab_to_pascal_case(pipeline_name)}Dag"] = InstantiatedDag
