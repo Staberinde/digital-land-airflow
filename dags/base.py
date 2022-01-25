@@ -113,9 +113,39 @@ def callable_commit_task(**kwargs):
 @task(
     task_id="dataset",
 )
-def callable_dataset_task():
-    pass
-    #TODO what does `make dataset` actually do?!?!? There's no build target, only build-dataset
+def callable_dataset_task(**kwargs):
+    dag = kwargs['dag']
+    ti = kwargs['ti']
+    pipeline_name = dag._dag_id
+
+    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
+    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
+    assert os.path.exists(pipeline_dir)
+
+    logging.info(
+        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
+        f"directory: {pipeline_dir} and specification_directory {specification_path}"
+    )
+    api = DigitalLandApi(
+        debug=False,
+        pipeline_name=pipeline_name,
+        pipeline_dir=pipeline_dir,
+        specification_dir=specification_path
+    )
+
+    endpoint_path = os.path.join(collection_repository_path, "collection/endpoint.csv")
+    collection_dir = os.path.join(collection_repository_path, 'collection')
+
+    logging.info(
+        f"Calling collect_cmd with endpoint_path {endpoint_path} and collection_dir {collection_dir}"
+    )
+
+    api.dataset_cmd(
+        endpoint_path=endpoint_path,
+        collection_dir=collection_dir
+    )
+    ti.xcom_push("api_instance", str(api))
+
 
 
 
@@ -126,6 +156,7 @@ def kebab_to_pascal_case(kebab_case_str):
 
 pipelines = [
     'listed-building',
+    'brownfield-land',
 ]
 for pipeline_name in pipelines:
     with DAG(
