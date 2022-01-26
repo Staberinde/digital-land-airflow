@@ -25,6 +25,7 @@ setup(
         "GitPython~=3.1.0",
         "pyhumps~=3.5.0",
         "boto3~=1.20.0"
+        "cloudpathlib"
     ],
     setup_requires=["pytest-runner"],
     extras_require={

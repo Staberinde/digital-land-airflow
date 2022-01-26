@@ -7,6 +7,7 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Variable
 import boto3
+from cloudpathlib import CloudPath
 from git import Repo
 from humps import pascalize
 
@@ -81,11 +82,14 @@ def callable_download_s3_resources_task(**kwargs):
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     collection_repository_path = ti.xcom_pull(key="collection_repository_path")
 
-    s3 = boto3.resource("s3")
-    s3.meta.client.download_file(
-        collection_s3_bucket,
-        f"{pipeline_name}/collection/resource/",
+    s3_resource_path = f"s3://{collection_s3_bucket}/{pipeline_name}/collection/resource/"
+    destination_dir = os.path.join(collection_repository_path, "collection", "resource")
+    cp = CloudPath(s3_resource_path)
+    cp.download_to(
         os.path.join(collection_repository_path, "collection", "resource")
+    )
+    logging.info(
+        f"Copied resources from {s3_resource_path} to {destination_dir} . Got: {os.listdir(destination_dir)}"
     )
 
 
