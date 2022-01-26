@@ -19,12 +19,12 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        #  "apache-airflow~=2.2.0",
-        "digital-land@git+https://github.com/digital-land/digital-land-python@domain-driven-design-refactoring",
-        "specification@git+https://github.com/digital-land/specification@domain-driven-design-refactoring-setup.py",
+        "digital-land@git+https://github.com/digital-land/digital-land-python",
+        "specification@git+https://github.com/digital-land/specification",
         "GitPython~=3.1.0",
         "pyhumps~=3.5.0",
-        "boto3~=1.20.0" "cloudpathlib",
+        "boto3~=1.20.0",
+        "cloudpathlib",
     ],
     setup_requires=["pytest-runner"],
     extras_require={
