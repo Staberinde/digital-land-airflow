@@ -24,6 +24,7 @@ setup(
         "specification@git+https://github.com/digital-land/specification@domain-driven-design-refactoring-setup.py",
         "GitPython~=3.1.0",
         "pyhumps~=3.5.0",
+        "boto3~=1.20.0"
     ],
     setup_requires=["pytest-runner"],
     extras_require={
