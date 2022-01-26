@@ -58,9 +58,6 @@ def _upload_files_to_s3(files, directory, destination):
         )
 
 
-@task(
-    task_id="clone",
-)
 def callable_clone_task(**kwargs):
     dag = kwargs["dag"]
     run_id = kwargs["run_id"]
