@@ -1,11 +1,20 @@
 from datetime import datetime
+from mock import Mock
 
 from airflow.models import TaskInstance
 
 from dags.base import callable_collect_task, ListedBuildingDag
 
 
-def test_collect(requests_mock):
-    task = callable_collect_task(dag=ListedBuildingDag).operator
-    ti = TaskInstance(task=task, execution_date=datetime.now())
-    result = task.execute(ti.get_template_context())
+def test_collect(requests_mock, mocker, tmpdir):
+
+    kwargs = {
+        "ti": Mock(**{
+        #  ti_mock.configure_mock(**{
+            'xcom_pull__return_value': tmpdir
+        }),
+        "dag": Mock(**{
+            "_dag_id": "listed-building"
+        }),
+    }
+    response = callable_collect_task(**kwargs)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
+from airflow.operators.python import PythonOperator
 from airflow.models import Variable
 import boto3
 from cloudpathlib import CloudPath
@@ -74,9 +75,6 @@ def callable_clone_task(**kwargs):
     ti.xcom_push("collection_repository_path", repo_path)
 
 
-@task(
-    task_id="collect",
-)
 def callable_collect_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
     api = _get_api_instance(kwargs)
@@ -95,9 +93,6 @@ def callable_collect_task(**kwargs):
     kwargs["ti"].xcom_push("api_instance", api.to_json())
 
 
-@task(
-    task_id="download_s3_resources"
-)
 def callable_download_s3_resources_task(**kwargs):
     dag = kwargs['dag']
     pipeline_name = dag._dag_id
@@ -115,9 +110,6 @@ def callable_download_s3_resources_task(**kwargs):
     )
 
 
-@task(
-    task_id="collection",
-)
 def callable_collection_task(**kwargs):
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -130,9 +122,6 @@ def callable_collection_task(**kwargs):
     )
 
 
-@task(
-    task_id="commit",
-)
 def callable_commit_task(**kwargs):
     if ENVIRONMENT != "production":
         raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
@@ -143,9 +132,6 @@ def callable_commit_task(**kwargs):
     repo.remotes["origin"].push()
 
 
-@task(
-    task_id="dataset",
-)
 def callable_dataset_task(**kwargs):
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -191,9 +177,6 @@ def callable_dataset_task(**kwargs):
         )
 
 
-@task(
-    task_id="build_dataset",
-)
 def callable_build_dataset_task(**kwargs):
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -252,9 +235,6 @@ def callable_build_dataset_task(**kwargs):
     )
 
 
-@task(
-    task_id="push_s3_collection"
-)
 def callable_push_s3_collection_task(**kwargs):
     if ENVIRONMENT != "production":
         raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
@@ -279,9 +259,6 @@ def callable_push_s3_collection_task(**kwargs):
     )
 
 
-@task(
-    task_id="push_s3_dataset"
-)
 def callable_push_s3_dataset_task(**kwargs):
     if ENVIRONMENT != "production":
         raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
@@ -330,17 +307,18 @@ for pipeline_name in pipelines:
         schedule_interval=timedelta(days=1),
         start_date=datetime.now()
     ) as InstantiatedDag:
-        clone = callable_clone_task()
-        download_s3_resources = callable_download_s3_resources_task()
-        collect = callable_collect_task()
-        collection = callable_collection_task()
-        commit_collect = callable_commit_task()
-        commit_collection = callable_commit_task()
-        commit_harmonised = callable_commit_task()
-        push_s3_collection = callable_push_s3_collection_task()
-        dataset = callable_dataset_task()
-        build_dataset = callable_build_dataset_task()
-        push_s3_dataset = callable_push_s3_dataset_task()
+
+        clone = PythonOperator(task_id="clone", python_callable=callable_clone_task)
+        download_s3_resources = PythonOperator(task_id="download_s3_resources", python_callable=callable_download_s3_resources_task)
+        collect = PythonOperator(task_id="collect", python_callable=callable_collect_task)
+        collection = PythonOperator(task_id="collection", python_callable=callable_collection_task)
+        commit_collect = PythonOperator(task_id="commit_collect", python_callable=callable_commit_task)
+        commit_collection = PythonOperator(task_id="commit_collection", python_callable=callable_commit_task)
+        commit_harmonised = PythonOperator(task_id="commit_harmonised", python_callable=callable_commit_task)
+        push_s3_collection = PythonOperator(task_id="push_s3_collection_task", python_callable=callable_push_s3_collection_task)
+        dataset = PythonOperator(task_id="dataset_task", python_callable=callable_dataset_task)
+        build_dataset = PythonOperator(task_id="build_dataset_task", python_callable=callable_build_dataset_task)
+        push_s3_dataset = PythonOperator(task_id="push_s3_dataset_task", python_callable=callable_push_s3_dataset_task)
 
         clone >> download_s3_resources
         download_s3_resources >> collect
