@@ -24,19 +24,11 @@ setup(
         "specification@git+https://github.com/digital-land/specification@domain-driven-design-refactoring-setup.py",
         "GitPython~=3.1.0",
         "pyhumps~=3.5.0",
-        "boto3~=1.20.0"
-        "cloudpathlib"
+        "boto3~=1.20.0" "cloudpathlib",
     ],
     setup_requires=["pytest-runner"],
     extras_require={
-        "test": [
-            "coverage",
-            "flake8",
-            "pytest",
-            "coveralls",
-            "twine",
-            "requests-mock"
-        ]
+        "test": ["coverage", "flake8", "pytest", "coveralls", "twine", "requests-mock"]
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
