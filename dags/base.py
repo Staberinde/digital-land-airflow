@@ -1,5 +1,4 @@
 import logging
-import json
 import os
 from datetime import datetime, timedelta
 
@@ -16,6 +15,45 @@ from digital_land.specification import specification_path
 
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+
+
+def _get_api_instance(kwargs):
+    pipeline_name = kwargs['dag']._dag_id
+
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
+    assert os.path.exists(pipeline_dir)
+
+    logging.info(
+        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
+        f"directory: {pipeline_dir} and specification_directory {specification_path}"
+    )
+    return DigitalLandApi(
+        debug=False,
+        pipeline_name=pipeline_name,
+        pipeline_dir=pipeline_dir,
+        specification_dir=specification_path
+    )
+
+
+def _get_collection_repository_path(kwargs):
+    return kwargs['ti'].xcom_pull(key="collection_repository_path")
+
+
+def _upload_directory_to_s3(directory, destination):
+    files = os.listdir(directory)
+    _upload_files_to_s3(files, directory, destination)
+
+
+def _upload_files_to_s3(files, directory, destination):
+    s3 = boto3.resource("s3")
+    collection_s3_bucket = Variable.get("collection_s3_bucket")
+    for file_to_upload in files:
+        s3.meta.client.upload_file(
+            os.path.join(directory, file_to_upload),
+            collection_s3_bucket,
+            f"{destination}/{file_to_upload}",
+        )
 
 
 @task(
@@ -39,24 +77,8 @@ def callable_clone_task(**kwargs):
     task_id="collect",
 )
 def callable_collect_task(**kwargs):
-    dag = kwargs['dag']
-    ti = kwargs['ti']
-    pipeline_name = dag._dag_id
-
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
-    assert os.path.exists(pipeline_dir)
-
-    logging.info(
-        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
-        f"directory: {pipeline_dir} and specification_directory {specification_path}"
-    )
-    api = DigitalLandApi(
-        debug=False,
-        pipeline_name=pipeline_name,
-        pipeline_dir=pipeline_dir,
-        specification_dir=specification_path
-    )
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    api = _get_api_instance(kwargs)
 
     endpoint_path = os.path.join(collection_repository_path, "collection/endpoint.csv")
     collection_dir = os.path.join(collection_repository_path, 'collection')
@@ -69,7 +91,7 @@ def callable_collect_task(**kwargs):
         endpoint_path=endpoint_path,
         collection_dir=collection_dir
     )
-    ti.xcom_push("api_instance", api.to_json())
+    kwargs["ti"].xcom_push("api_instance", api.to_json())
 
 
 @task(
@@ -77,10 +99,9 @@ def callable_collect_task(**kwargs):
 )
 def callable_download_s3_resources_task(**kwargs):
     dag = kwargs['dag']
-    ti = kwargs['ti']
     pipeline_name = dag._dag_id
     collection_s3_bucket = Variable.get("collection_s3_bucket")
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
+    collection_repository_path = _get_collection_repository_path(kwargs)
 
     s3_resource_path = f"s3://{collection_s3_bucket}/{pipeline_name}/collection/resource/"
     destination_dir = os.path.join(collection_repository_path, "collection", "resource")
@@ -97,17 +118,8 @@ def callable_download_s3_resources_task(**kwargs):
     task_id="collection",
 )
 def callable_collection_task(**kwargs):
-    ti = kwargs['ti']
-    api_constructor_args = json.loads(ti.xcom_pull(key="api_instance"))
-
-    logging.info(
-        f"Instantiating DigitalLandApi for pipeline {api_constructor_args['pipeline_name']} using pipeline "
-        f"directory: {api_constructor_args['pipeline_dir']} and "
-        f"specification_directory {api_constructor_args['specification_dir']}"
-    )
-    api = DigitalLandApi(**api_constructor_args)
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-
+    api = _get_api_instance(kwargs)
+    collection_repository_path = _get_collection_repository_path(kwargs)
     collection_dir = os.path.join(collection_repository_path, 'collection')
     logging.info(
         f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"
@@ -125,9 +137,8 @@ def callable_commit_task(**kwargs):
     if ENVIRONMENT != "production":
         logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
         return
-    ti = kwargs['ti']
-    repo = ti.xcom_pull(key="collection_repository_path")
-    repo = Repo(repo)
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    repo = Repo(collection_repository_path)
     repo.git.add(update=False)
     repo.index.commit(f"Data {datetime.now().isoformat()}")
     repo.remotes["origin"].push()
@@ -137,24 +148,8 @@ def callable_commit_task(**kwargs):
     task_id="dataset",
 )
 def callable_dataset_task(**kwargs):
-    dag = kwargs['dag']
-    ti = kwargs['ti']
-    pipeline_name = dag._dag_id
-
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
-    assert os.path.exists(pipeline_dir)
-
-    logging.info(
-        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
-        f"directory: {pipeline_dir} and specification_directory {specification_path}"
-    )
-    api = DigitalLandApi(
-        debug=False,
-        pipeline_name=pipeline_name,
-        pipeline_dir=pipeline_dir,
-        specification_dir=specification_path
-    )
+    api = _get_api_instance(kwargs)
+    collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = os.path.join(collection_repository_path, 'collection')
     resource_list = os.listdir(
@@ -201,24 +196,8 @@ def callable_dataset_task(**kwargs):
     task_id="build_dataset",
 )
 def callable_build_dataset_task(**kwargs):
-    dag = kwargs['dag']
-    ti = kwargs['ti']
-    pipeline_name = dag._dag_id
-
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-    pipeline_dir = os.path.join(collection_repository_path, 'pipeline')
-    assert os.path.exists(pipeline_dir)
-
-    logging.info(
-        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
-        f"directory: {pipeline_dir} and specification_directory {specification_path}"
-    )
-    api = DigitalLandApi(
-        debug=False,
-        pipeline_name=pipeline_name,
-        pipeline_dir=pipeline_dir,
-        specification_dir=specification_path
-    )
+    api = _get_api_instance(kwargs)
+    collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = os.path.join(collection_repository_path, 'collection')
     resource_list = os.listdir(
@@ -281,35 +260,25 @@ def callable_push_s3_collection_task(**kwargs):
     if ENVIRONMENT != "production":
         logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
         return
-    dag = kwargs['dag']
-    ti = kwargs['ti']
-    pipeline_name = dag._dag_id
-    collection_s3_bucket = Variable.get("collection_s3_bucket")
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-    s3 = boto3.resource("s3")
+    pipeline_name = kwargs['dag']._dag_id
+    collection_repository_path = _get_collection_repository_path(kwargs)
 
-    resource_dir = os.path.join(
-        collection_repository_path,
-        "resource",
-        pipeline_name,
+    _upload_directory_to_s3(
+        directory=os.path.join(
+            collection_repository_path,
+            "resource",
+            pipeline_name,
+        ),
+        destination=f"{pipeline_name}/collection/resource"
     )
-    resource_files = os.listdir(resource_dir)
-    for file_to_upload in resource_files:
-        s3.meta.client.upload_file(
-            os.path.join(resource_dir, file_to_upload),
-            collection_s3_bucket,
-            f"{pipeline_name}/collection/resource/{file_to_upload}",
-        )
 
-    collection_csv_files = [
-        "log.csv", "resource.csv", "source.csv", "endpoint.csv",
-    ]
-    for filename in collection_csv_files:
-        s3.meta.client.upload_file(
-            os.path.join(collection_repository_path, "collection", filename),
-            collection_s3_bucket,
-            f"{pipeline_name}/collection/{filename}",
-        )
+    _upload_files_to_s3(
+        files=[
+            "log.csv", "resource.csv", "source.csv", "endpoint.csv",
+        ],
+        directory=os.path.join(collection_repository_path, "collection"),
+        destination=f"{pipeline_name}/collection/"
+    )
 
 
 @task(
@@ -319,51 +288,35 @@ def callable_push_s3_dataset_task(**kwargs):
     if ENVIRONMENT != "production":
         logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
         return 
-    dag = kwargs['dag']
-    ti = kwargs['ti']
-    pipeline_name = dag._dag_id
-    collection_s3_bucket = Variable.get("collection_s3_bucket")
-    collection_repository_path = ti.xcom_pull(key="collection_repository_path")
-    s3 = boto3.resource("s3")
+    pipeline_name = kwargs['dag']._dag_id
+    collection_repository_path = _get_collection_repository_path(kwargs)
 
-    # TODO refactor these into method
-    transformed_dir = os.path.join(
-        collection_repository_path,
-        "transformed",
-        pipeline_name,
+    _upload_directory_to_s3(
+        directory=os.path.join(
+            collection_repository_path,
+            "transformed",
+            pipeline_name,
+        ),
+        destination=f"{pipeline_name}/transformed"
     )
-    transformed_files = os.listdir(transformed_dir)
-    for file_to_upload in transformed_files:
-        s3.meta.client.upload_file(
-            os.path.join(transformed_dir, file_to_upload),
-            collection_s3_bucket,
-            f"{pipeline_name}/transformed/{file_to_upload}",
-        )
 
-    issue_dir = os.path.join(
-        collection_repository_path,
-        "issues",
-        pipeline_name,
+    _upload_directory_to_s3(
+        directory=os.path.join(
+            collection_repository_path,
+            "issue",
+            pipeline_name,
+        ),
+        destination=f"{pipeline_name}/issue"
     )
-    issue_files = os.listdir(issue_dir)
-    for file_to_upload in issue_files:
-        s3.meta.client.upload_file(
-            os.path.join(issue_dir, file_to_upload),
-            collection_s3_bucket,
-            f"{pipeline_name}/issue/{file_to_upload}",
-        )
-    dataset_dir = os.path.join(
-        collection_repository_path,
-        "dataset",
-        pipeline_name,
+
+    _upload_directory_to_s3(
+        directory=os.path.join(
+            collection_repository_path,
+            "dataset",
+            pipeline_name,
+        ),
+        destination=f"{pipeline_name}/dataset"
     )
-    dataset_files = os.listdir(dataset_dir)
-    for file_to_upload in dataset_files:
-        s3.meta.client.upload_file(
-            os.path.join(dataset_dir, file_to_upload),
-            collection_s3_bucket,
-            f"{pipeline_name}/dataset/{file_to_upload}",
-        )
 
 
 def kebab_to_pascal_case(kebab_case_str):
