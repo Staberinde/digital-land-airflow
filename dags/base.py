@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.decorators import task
+from airflow.exceptions import AirflowSkipException
 from airflow.models import Variable
 import boto3
 from cloudpathlib import CloudPath
@@ -133,10 +134,8 @@ def callable_collection_task(**kwargs):
     task_id="commit",
 )
 def callable_commit_task(**kwargs):
-    # TODO replace with branch python operator
     if ENVIRONMENT != "production":
-        logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
-        return
+        raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
     collection_repository_path = _get_collection_repository_path(kwargs)
     repo = Repo(collection_repository_path)
     repo.git.add(update=False)
@@ -258,8 +257,7 @@ def callable_build_dataset_task(**kwargs):
 )
 def callable_push_s3_collection_task(**kwargs):
     if ENVIRONMENT != "production":
-        logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
-        return
+        raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
     pipeline_name = kwargs['dag']._dag_id
     collection_repository_path = _get_collection_repository_path(kwargs)
 
@@ -286,8 +284,7 @@ def callable_push_s3_collection_task(**kwargs):
 )
 def callable_push_s3_dataset_task(**kwargs):
     if ENVIRONMENT != "production":
-        logging.info(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
-        return 
+        raise AirflowSkipException(f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'")
     pipeline_name = kwargs['dag']._dag_id
     collection_repository_path = _get_collection_repository_path(kwargs)
 
@@ -348,14 +345,14 @@ for pipeline_name in pipelines:
         clone >> download_s3_resources
         download_s3_resources >> collect
         collect >> commit_collect
-        # TODO make commit's their own graph branch
-        commit_collect >> collection
+        collect >> collection
         collection >> commit_collection
-        commit_collection >> push_s3_collection
-        push_s3_collection >> dataset
+        commit_collect >> commit_collection
+        collection >> push_s3_collection
+        collection >> dataset
         dataset >> build_dataset
         build_dataset >> commit_harmonised
-        commit_harmonised >> push_s3_dataset
+        build_dataset >> push_s3_dataset
 
         # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{kebab_to_pascal_case(pipeline_name)}Dag"] = InstantiatedDag
