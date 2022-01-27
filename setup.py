@@ -4,11 +4,6 @@ import sys
 from setuptools import find_packages, setup
 
 
-# Only install black on Python 3.6 or higher
-maybe_black = []
-if sys.version_info > (3, 6):
-    maybe_black = ["black"]
-
 setup(
     name="digital-land-airflow",
     long_description_content_type="text/markdown",
@@ -28,7 +23,17 @@ setup(
     ],
     setup_requires=["pytest-runner"],
     extras_require={
-        "test": ["coverage", "flake8", "pytest", "coveralls", "twine", "requests-mock"]
+        "test": [
+            "black",
+            "coverage",
+            "flake8",
+            "pytest",
+            "coveralls",
+            "twine",
+            "requests-mock",
+            "pytest-mock",
+            "apache-airflow~=2.2.0",
+        ]
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
