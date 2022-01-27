@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
@@ -10,6 +11,7 @@ import boto3
 from cloudpathlib import CloudPath
 from git import Repo
 from humps import pascalize
+import requests
 
 from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
@@ -55,6 +57,18 @@ def _upload_files_to_s3(files, directory, destination):
             collection_s3_bucket,
             f"{destination}/{file_to_upload}",
         )
+
+
+def _get_organisation_csv(kwargs):
+    run_id = kwargs["run_id"]
+    directory = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}")
+    directory.mkdir()
+    path = directory.joinpath("organisation.csv")
+    organisation_csv_url = Variable.get('organisation_csv_url')
+    response = requests.get(organisation_csv_url)
+    response.raise_for_status()
+    with open(path, "w+") as file:
+        file.write(response.text)
 
 
 def callable_clone_task(**kwargs):
@@ -131,6 +145,7 @@ def callable_dataset_task(**kwargs):
 
     collection_dir = os.path.join(collection_repository_path, "collection")
     resource_list = os.listdir(os.path.join(collection_dir, "resource"))
+    organisation_csv_path = _get_organisation_csv(kwargs)
 
     for resource_file in resource_list:
         pipeline_cmd_args = dict(
@@ -141,15 +156,15 @@ def callable_dataset_task(**kwargs):
             collection_dir=collection_dir,
             null_path=None,
             issue_dir=f"issue/{pipeline_name}",
-            organisation_path="/var/cache/organisation.csv",
-            save_harmonised=False,
+            organisation_path=organisation_csv_path,
+            save_harmonised=True,
         )
         log_string = (
             f"digital-land --pipeline-name {pipeline_name} pipeline "
             f"--issue-dir {pipeline_cmd_args['issue_dir']} "
             f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
             f"--null-path {pipeline_cmd_args['null_path']} "
-            f"--organisation-path {pipeline_cmd_args['null_path']} "
+            f"--organisation-path {pipeline_cmd_args['organisation_path']} "
         )
         if pipeline_cmd_args["save_harmonised"]:
             log_string += " --save-harmonised"
@@ -276,6 +291,7 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
+# TODO autopopulate these by finding repos ending in `-collection` within `digital-land`
 pipelines = [
     "listed-building",
     "brownfield-land",

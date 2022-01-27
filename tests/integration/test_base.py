@@ -2,15 +2,42 @@ from csv import DictReader
 from datetime import date
 from json import load
 from pathlib import Path
-from shutil import copytree
+from shutil import copy, copytree
 from unittest.mock import Mock
 
 import pytest
 
-from dags.base import callable_collect_task, callable_collection_task
+from dags.base import (
+    callable_collect_task,
+    callable_collection_task,
+    callable_dataset_task,
+)
 
 
 TODAY = date.today()
+
+
+@pytest.fixture
+def collection_resources_file(tmp_path):
+    collection_dir = tmp_path.joinpath("collection")
+    collection_dir.mkdir()
+    resource_file = collection_dir.joinpath("resource.csv")
+    resource_file.touch()
+    copy(
+        Path(__file__).parent.parent.joinpath("data/collection/resources/resource.csv"),
+        resource_file,
+    )
+    return resource_file
+
+
+@pytest.fixture
+def collection_resources_dir(tmp_path):
+    resources_dir = tmp_path.joinpath("collection").joinpath("resource")
+    copytree(
+        Path(__file__).parent.parent.joinpath("data/collection/resources/resource"),
+        resources_dir,
+    )
+    return resources_dir
 
 
 @pytest.fixture
@@ -57,6 +84,8 @@ def kwargs(tmp_path):
     return {
         "ti": Mock(**{"xcom_pull.return_value": tmp_path}),
         "dag": Mock(**{"_dag_id": "listed-building"}),
+        # This should increment with each test execution
+        "run_id": tmp_path.parent.name.split("-")[-1],
     }
 
 
@@ -100,3 +129,14 @@ def test_collection(collection_metadata_dir, collection_payload_dir, kwargs, tmp
             assert {log["resource"] for log in logs} == {
                 resource["resource"] for resource in resource_csv
             }
+
+
+@pytest.mark.skip
+def test_dataset(collection_resources_dir, kwargs, tmp_path):
+    # Setup
+    tmp_path.joinpath("pipeline").mkdir()
+
+    # Call
+    callable_dataset_task(**kwargs)
+
+    # Assert
