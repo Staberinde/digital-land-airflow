@@ -1,5 +1,5 @@
 from csv import DictReader
-from datetime import datetime, date
+from datetime import date
 from json import load
 from pathlib import Path
 from shutil import copytree
@@ -11,6 +11,7 @@ from dags.base import callable_collect_task, callable_collection_task
 
 
 TODAY = date.today()
+
 
 @pytest.fixture
 def collection_metadata_dir(tmp_path):

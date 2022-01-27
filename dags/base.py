@@ -3,7 +3,6 @@ import os
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.models import Variable
@@ -68,9 +67,7 @@ def callable_clone_task(**kwargs):
     repo_path = os.path.join("/tmp", f"{pipeline_name}_{run_id}", repo_name)
 
     os.makedirs(repo_path)
-    repo = Repo.clone_from(
-        f"https://github.com/digital-land/{repo_name}", to_path=repo_path
-    )
+    Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
     ti.xcom_push("collection_repository_path", repo_path)
 
 
