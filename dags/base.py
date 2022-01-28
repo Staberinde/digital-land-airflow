@@ -24,8 +24,8 @@ def _get_api_instance(kwargs):
     pipeline_name = kwargs["dag"]._dag_id
 
     collection_repository_path = _get_collection_repository_path(kwargs)
-    pipeline_dir = os.path.join(collection_repository_path, "pipeline")
-    assert os.path.exists(pipeline_dir)
+    pipeline_dir = Path(collection_repository_path).joinpath("pipeline")
+    assert pipeline_dir.exists()
 
     logging.info(
         f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
@@ -34,8 +34,8 @@ def _get_api_instance(kwargs):
     return DigitalLandApi(
         debug=False,
         pipeline_name=pipeline_name,
-        pipeline_dir=pipeline_dir,
-        specification_dir=specification_path,
+        pipeline_dir=str(pipeline_dir),
+        specification_dir=str(specification_path),
     )
 
 
@@ -47,8 +47,8 @@ def _get_pipeline_name(kwargs):
     return kwargs["dag"]._dag_id
 
 
-def _upload_directory_to_s3(directory, destination):
-    files = os.listdir(directory)
+def _upload_directory_to_s3(directory: Path, destination: str):
+    files = directory.iterdir()
     _upload_files_to_s3(files, directory, destination)
 
 
@@ -57,7 +57,7 @@ def _upload_files_to_s3(files, directory, destination):
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     for file_to_upload in files:
         s3.meta.client.upload_file(
-            os.path.join(directory, file_to_upload),
+            Path(directory).joinpath(file_to_upload),
             collection_s3_bucket,
             f"{destination}/{file_to_upload}",
         )
@@ -82,9 +82,9 @@ def callable_clone_task(**kwargs):
     run_id = kwargs["run_id"]
     repo_name = f"{pipeline_name}-collection"
     # TODO add onsuccess branch to delete this dir
-    repo_path = os.path.join("/tmp", f"{pipeline_name}_{run_id}", repo_name)
+    repo_path = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}").joinpath(repo_name)
 
-    os.makedirs(repo_path)
+    repo_path.mkdir(parents=True)
     Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
     kwargs["ti"].xcom_push("collection_repository_path", repo_path)
 
@@ -93,8 +93,8 @@ def callable_collect_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
     api = _get_api_instance(kwargs)
 
-    endpoint_path = os.path.join(collection_repository_path, "collection/endpoint.csv")
-    collection_dir = os.path.join(collection_repository_path, "collection")
+    endpoint_path = Path(collection_repository_path).joinpath("collection/endpoint.csv")
+    collection_dir = Path(collection_repository_path).joinpath("collection")
 
     logging.info(
         f"Calling collect_cmd with endpoint_path {endpoint_path} and collection_dir {collection_dir}"
@@ -112,18 +112,20 @@ def callable_download_s3_resources_task(**kwargs):
     s3_resource_path = (
         f"s3://{collection_s3_bucket}/{pipeline_name}/collection/resource/"
     )
-    destination_dir = os.path.join(collection_repository_path, "collection", "resource")
+    destination_dir = (
+        Path(collection_repository_path).joinpath("collection").joinpath("resource")
+    )
     cp = CloudPath(s3_resource_path)
-    cp.download_to(os.path.join(collection_repository_path, "collection", "resource"))
+    cp.download_to(destination_dir)
     logging.info(
-        f"Copied resources from {s3_resource_path} to {destination_dir} . Got: {os.listdir(destination_dir)}"
+        f"Copied resources from {s3_resource_path} to {destination_dir} . Got: {list(destination_dir.iterdir())}"
     )
 
 
 def callable_collection_task(**kwargs):
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
-    collection_dir = os.path.join(collection_repository_path, "collection")
+    collection_dir = Path(collection_repository_path).joinpath("collection")
     logging.info(
         f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"
     )
@@ -147,24 +149,27 @@ def callable_dataset_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
-    collection_dir = os.path.join(collection_repository_path, "collection")
-    resource_list = os.listdir(os.path.join(collection_dir, "resource"))
+    collection_dir = Path(collection_repository_path).joinpath("collection")
+    resource_dir = collection_dir.joinpath("resource")
+    resource_list = resource_dir.iterdir()
     organisation_csv_path = _get_organisation_csv(kwargs)
-    issue_dir = Path(f"{collection_repository_path}/issue/{pipeline_name}")
+    issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
     issue_dir.mkdir(parents=True)
 
     for resource_file in resource_list:
-        pipeline_cmd_args = dict(
-            input_path=os.path.join(collection_dir, "resource", resource_file),
-            output_path=os.path.join(
-                collection_repository_path, "transformed", pipeline_name, resource_file
+        pipeline_cmd_args = {
+            "input_path": str(resource_dir.joinpath(resource_file)),
+            "output_path": str(
+                collection_repository_path.joinpath("transformed")
+                .joinpath(pipeline_name)
+                .joinpath(resource_file.name)
             ),
-            collection_dir=collection_dir,
-            null_path=None,
-            issue_dir=issue_dir,
-            organisation_path=organisation_csv_path,
-            save_harmonised=True,
-        )
+            "collection_dir": collection_dir,
+            "null_path": None,
+            "issue_dir": issue_dir,
+            "organisation_path": organisation_csv_path,
+            "save_harmonised": True,
+        }
         log_string = (
             f"digital-land --pipeline-name {pipeline_name} pipeline "
             f"--issue-dir {pipeline_cmd_args['issue_dir']} "
@@ -185,15 +190,15 @@ def callable_build_dataset_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
-    collection_dir = os.path.join(collection_repository_path, "collection")
-    resource_list = os.listdir(os.path.join(collection_dir, "resource"))
+    collection_dir = Path(collection_repository_path).joinpath("collection")
+    resource_list = Path(collection_dir).joinpath("resource").iterdir()
     potential_input_paths = [
-        os.path.join(
-            collection_repository_path, "transformed", pipeline_name, resource_file
-        )
+        collection_repository_path.joinpath("transformed")
+        .joinpath(pipeline_name)
+        .joinpath(resource_file)
         for resource_file in resource_list
     ]
-    actual_input_paths = list(filter(os.path.exists, potential_input_paths))
+    actual_input_paths = list(filter(lambda x: x.exists(), potential_input_paths))
     if potential_input_paths != actual_input_paths:
         logging.warning(
             "The following expected output files were not generated by `digital-land pipeline`: {}".format(
@@ -201,17 +206,12 @@ def callable_build_dataset_task(**kwargs):
             )
         )
 
-    dataset_path = os.path.join(
-        collection_repository_path,
-        "dataset",
-    )
-    os.makedirs(dataset_path)
-    sqlite_artifact_path = os.path.join(
-        dataset_path,
+    dataset_path = collection_repository_path.joinpath(dataset)
+    dataset_path.mkdir()
+    sqlite_artifact_path = dataset_path.joinpath(
         f"{pipeline_name}.sqlite3",
     )
-    unified_collection_csv_path = os.path.join(
-        dataset_path,
+    unified_collection_csv_path = dataset_path.joinpath(
         f"{pipeline_name}.csv",
     )
 
@@ -238,9 +238,7 @@ def callable_push_s3_collection_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     _upload_directory_to_s3(
-        directory=os.path.join(
-            collection_repository_path,
-            "resource",
+        directory=collection_repository_path.joinpath("resource",).joinpath(
             pipeline_name,
         ),
         destination=f"{pipeline_name}/collection/resource",
@@ -253,7 +251,7 @@ def callable_push_s3_collection_task(**kwargs):
             "source.csv",
             "endpoint.csv",
         ],
-        directory=os.path.join(collection_repository_path, "collection"),
+        directory=Path(collection_repository_path).joinpath("collection"),
         destination=f"{pipeline_name}/collection/",
     )
 
@@ -267,27 +265,21 @@ def callable_push_s3_dataset_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     _upload_directory_to_s3(
-        directory=os.path.join(
-            collection_repository_path,
-            "transformed",
+        directory=collection_repository_path.joinpath("transformed").joinpath(
             pipeline_name,
         ),
         destination=f"{pipeline_name}/transformed",
     )
 
     _upload_directory_to_s3(
-        directory=os.path.join(
-            collection_repository_path,
-            "issue",
+        directory=collection_repository_path.joinpath("issue").joinpath(
             pipeline_name,
         ),
         destination=f"{pipeline_name}/issue",
     )
 
     _upload_directory_to_s3(
-        directory=os.path.join(
-            collection_repository_path,
-            "dataset",
+        directory=collection_repository_path.joinpath("dataset").joinpath(
             pipeline_name,
         ),
         destination=f"{pipeline_name}/dataset",

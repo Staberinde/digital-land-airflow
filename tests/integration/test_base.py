@@ -17,6 +17,12 @@ from dags.base import (
 TODAY = date.today()
 
 
+class DigitalLandAirflowTestSetupException(Exception):
+    """This is to make it really obvious where to look when it throws"""
+
+    pass
+
+
 @pytest.fixture
 def collection_resources_file(tmp_path):
     collection_dir = tmp_path.joinpath("collection")
@@ -24,7 +30,9 @@ def collection_resources_file(tmp_path):
     resource_file = collection_dir.joinpath("resource.csv")
 
     if resource_file.exists():
-        print(f"{resource_file.name} exists from previous fixture, replacing with populatd version")
+        print(
+            f"{resource_file.name} exists from previous fixture, replacing with populatd version"
+        )
     resource_file.touch()
     copy(
         Path(__file__).parent.parent.joinpath("data/collection/resources/resource.csv"),
@@ -84,8 +92,16 @@ def endpoint_requests_mock(requests_mock, collection_metadata_dir):
 
 @pytest.fixture
 def kwargs(tmp_path):
+    def _xcom_pull_return(key):
+        if key == "collection_repository_path":
+            return tmp_path
+        else:
+            raise DigitalLandAirflowTestSetupException(
+                f"I don't yet know what to do with xcom_pull arg {key}"
+            )
+
     return {
-        "ti": Mock(**{"xcom_pull.return_value": tmp_path}),
+        "ti": Mock(**{"xcom_pull.side_effect": _xcom_pull_return}),
         "dag": Mock(**{"_dag_id": "listed-building"}),
         # This should increment with each test execution
         "run_id": tmp_path.parent.name.split("-")[-1],
