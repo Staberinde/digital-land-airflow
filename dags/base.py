@@ -43,6 +43,10 @@ def _get_collection_repository_path(kwargs):
     return kwargs["ti"].xcom_pull(key="collection_repository_path")
 
 
+def _get_pipeline_name(kwargs):
+    return kwargs["dag"]._dag_id
+
+
 def _upload_directory_to_s3(directory, destination):
     files = os.listdir(directory)
     _upload_files_to_s3(files, directory, destination)
@@ -60,29 +64,29 @@ def _upload_files_to_s3(files, directory, destination):
 
 
 def _get_organisation_csv(kwargs):
+    pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
     directory = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}")
     directory.mkdir()
     path = directory.joinpath("organisation.csv")
-    organisation_csv_url = Variable.get('organisation_csv_url')
+    organisation_csv_url = Variable.get("organisation_csv_url")
     response = requests.get(organisation_csv_url)
     response.raise_for_status()
     with open(path, "w+") as file:
         file.write(response.text)
+    return path
 
 
 def callable_clone_task(**kwargs):
-    dag = kwargs["dag"]
+    pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
-    ti = kwargs["ti"]
-    pipeline_name = dag._dag_id
     repo_name = f"{pipeline_name}-collection"
     # TODO add onsuccess branch to delete this dir
     repo_path = os.path.join("/tmp", f"{pipeline_name}_{run_id}", repo_name)
 
     os.makedirs(repo_path)
     Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
-    ti.xcom_push("collection_repository_path", repo_path)
+    kwargs["ti"].xcom_push("collection_repository_path", repo_path)
 
 
 def callable_collect_task(**kwargs):
@@ -101,8 +105,7 @@ def callable_collect_task(**kwargs):
 
 
 def callable_download_s3_resources_task(**kwargs):
-    dag = kwargs["dag"]
-    pipeline_name = dag._dag_id
+    pipeline_name = _get_pipeline_name(kwargs)
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     collection_repository_path = _get_collection_repository_path(kwargs)
 
@@ -141,11 +144,14 @@ def callable_commit_task(**kwargs):
 
 def callable_dataset_task(**kwargs):
     api = _get_api_instance(kwargs)
+    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = os.path.join(collection_repository_path, "collection")
     resource_list = os.listdir(os.path.join(collection_dir, "resource"))
     organisation_csv_path = _get_organisation_csv(kwargs)
+    issue_dir = Path(f"{collection_repository_path}/issue/{pipeline_name}")
+    issue_dir.mkdir(parents=True)
 
     for resource_file in resource_list:
         pipeline_cmd_args = dict(
@@ -155,7 +161,7 @@ def callable_dataset_task(**kwargs):
             ),
             collection_dir=collection_dir,
             null_path=None,
-            issue_dir=f"issue/{pipeline_name}",
+            issue_dir=issue_dir,
             organisation_path=organisation_csv_path,
             save_harmonised=True,
         )
@@ -176,6 +182,7 @@ def callable_dataset_task(**kwargs):
 
 def callable_build_dataset_task(**kwargs):
     api = _get_api_instance(kwargs)
+    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = os.path.join(collection_repository_path, "collection")
@@ -227,7 +234,7 @@ def callable_push_s3_collection_task(**kwargs):
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'"
         )
-    pipeline_name = kwargs["dag"]._dag_id
+    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     _upload_directory_to_s3(
@@ -256,7 +263,7 @@ def callable_push_s3_dataset_task(**kwargs):
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'"
         )
-    pipeline_name = kwargs["dag"]._dag_id
+    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     _upload_directory_to_s3(

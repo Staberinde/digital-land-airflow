@@ -20,8 +20,11 @@ TODAY = date.today()
 @pytest.fixture
 def collection_resources_file(tmp_path):
     collection_dir = tmp_path.joinpath("collection")
-    collection_dir.mkdir()
+    collection_dir.mkdir(exist_ok=True)
     resource_file = collection_dir.joinpath("resource.csv")
+
+    if resource_file.exists():
+        print(f"{resource_file.name} exists from previous fixture, replacing with populatd version")
     resource_file.touch()
     copy(
         Path(__file__).parent.parent.joinpath("data/collection/resources/resource.csv"),
@@ -131,12 +134,28 @@ def test_collection(collection_metadata_dir, collection_payload_dir, kwargs, tmp
             }
 
 
-@pytest.mark.skip
-def test_dataset(collection_resources_dir, kwargs, tmp_path):
+def test_dataset(
+    collection_metadata_dir,
+    collection_resources_dir,
+    collection_resources_file,
+    requests_mock,
+    mocker,
+    kwargs,
+    tmp_path,
+):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
+    tmp_path.joinpath("transformed").joinpath("brownfield-land").mkdir(parents=True)
+    tmp_path.joinpath("transformed").joinpath("listed-building").mkdir()
+    tmp_path.joinpath("harmonised").joinpath("brownfield-land").mkdir(parents=True)
+    tmp_path.joinpath("harmonised").joinpath("listed-building").mkdir()
+    tmp_path.joinpath("issue").joinpath("brownfield-land").mkdir(parents=True)
 
     # Call
-    callable_dataset_task(**kwargs)
+    with mocker.patch(
+        "dags.base._get_organisation_csv",
+        return_value=Path(__file__).parent.parent.joinpath("data/organisation.csv"),
+    ):
+        callable_dataset_task(**kwargs)
 
     # Assert
