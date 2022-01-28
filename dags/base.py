@@ -258,20 +258,20 @@ def callable_push_s3_collection_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("resource",).joinpath(
-            pipeline_name,
+        directory=collection_repository_path.joinpath("collection").joinpath(
+            "resource"
         ),
         destination=f"{pipeline_name}/collection/resource",
     )
 
     _upload_files_to_s3(
         files=[
-            "log.csv",
-            "resource.csv",
-            "source.csv",
-            "endpoint.csv",
+            collection_repository_path.joinpath("collection").joinpath("endpoint.csv"),
+            collection_repository_path.joinpath("collection").joinpath("log.csv"),
+            collection_repository_path.joinpath("collection").joinpath("resource.csv"),
+            collection_repository_path.joinpath("collection").joinpath("source.csv"),
         ],
-        destination=f"{pipeline_name}/collection/",
+        destination=f"{pipeline_name}/collection",
     )
 
 

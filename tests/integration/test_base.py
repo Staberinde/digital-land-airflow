@@ -14,6 +14,7 @@ from dags.base import (
     callable_collection_task,
     callable_dataset_task,
     callable_download_s3_resources_task,
+    callable_push_s3_collection_task,
     callable_push_s3_dataset_task,
 )
 
@@ -40,7 +41,7 @@ def collection_resources_file(data_dir, tmp_path):
 
     if resource_file.exists():
         print(
-            f"{resource_file.name} exists from previous fixture, replacing with populatd version"
+            f"{resource_file.name} exists from previous fixture, replacing with populated version"
         )
     resource_file.touch()
     copy(
@@ -355,5 +356,44 @@ def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker
                     f"listed-building/dataset/{path.name}",
                 )
                 for path in dataset_dir.iterdir()
+            ]
+        )
+
+
+# TODO move this to tests/unit
+def test_push_s3_collection(
+    kwargs, collection_resources_dir, collection_metadata_dir, mocker
+):
+    #  Setup
+    mock_s3_client = MagicMock()
+
+    # Call
+    with mocker.patch(
+        "dags.base._get_environment", return_value="production"
+    ), mocker.patch(
+        "airflow.models.Variable.get", return_value="iamacollections3bucket"
+    ), mocker.patch(
+        "dags.base._get_s3_client", return_value=mock_s3_client
+    ):
+        callable_push_s3_collection_task(**kwargs)
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"listed-building/collection/resource/{path.name}",
+                )
+                for path in collection_resources_dir.iterdir()
+            ]
+        )
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"listed-building/collection/{path.name}",
+                )
+                for path in sorted(collection_metadata_dir.iterdir())
+                if path.name not in ["resource", "collection.csv"]
             ]
         )
