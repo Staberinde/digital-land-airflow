@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from dags.base import (
+    callable_build_dataset_task,
     callable_collect_task,
     callable_collection_task,
     callable_dataset_task,
@@ -55,6 +56,16 @@ def collection_resources_dir(data_dir, tmp_path):
         resources_dir,
     )
     return resources_dir
+
+
+@pytest.fixture
+def transformed_dir(data_dir, tmp_path):
+    transformed_dir = tmp_path.joinpath("transformed")
+    copytree(
+        data_dir.joinpath("transformed"),
+        transformed_dir,
+    )
+    return transformed_dir
 
 
 @pytest.fixture
@@ -210,5 +221,24 @@ def test_dataset(
         issue_dir,
         test_expected_results_dir.joinpath("issue"),
         test_expected_results_dir.joinpath("issue").iterdir(),
+        shallow=False,
+    )
+
+
+def test_build_dataset(
+    collection_resources_dir, expected_results_dir, transformed_dir, kwargs, tmp_path
+):
+    # Setup
+    tmp_path.joinpath("pipeline").mkdir()
+    test_expected_results_dir = expected_results_dir.joinpath("test_build_dataset")
+
+    # Call
+    callable_build_dataset_task(**kwargs)
+
+    # Assert
+    cmpfiles(
+        tmp_path.joinpath("dataset"),
+        test_expected_results_dir.joinpath("dataset"),
+        test_expected_results_dir.joinpath("dataset").iterdir(),
         shallow=False,
     )

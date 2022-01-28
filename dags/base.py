@@ -157,6 +157,7 @@ def callable_dataset_task(**kwargs):
     issue_dir.mkdir(parents=True)
 
     for resource_file in resource_list:
+        # Most digital_land.API() commands expect strings not pathlib.Path
         pipeline_cmd_args = {
             "input_path": str(resource_dir.joinpath(resource_file)),
             "output_path": str(
@@ -195,7 +196,7 @@ def callable_build_dataset_task(**kwargs):
     potential_input_paths = [
         collection_repository_path.joinpath("transformed")
         .joinpath(pipeline_name)
-        .joinpath(resource_file)
+        .joinpath(resource_file.name)
         for resource_file in resource_list
     ]
     actual_input_paths = list(filter(lambda x: x.exists(), potential_input_paths))
@@ -206,7 +207,7 @@ def callable_build_dataset_task(**kwargs):
             )
         )
 
-    dataset_path = collection_repository_path.joinpath(dataset)
+    dataset_path = collection_repository_path.joinpath("dataset")
     dataset_path.mkdir()
     sqlite_artifact_path = dataset_path.joinpath(
         f"{pipeline_name}.sqlite3",
@@ -214,19 +215,23 @@ def callable_build_dataset_task(**kwargs):
     unified_collection_csv_path = dataset_path.joinpath(
         f"{pipeline_name}.csv",
     )
+    # Most digital_land.API() commands expect strings not pathlib.Path
+    actual_input_paths_str = list(map(str, actual_input_paths))
+    sqlite_artifact_path_str = str(sqlite_artifact_path)
+    unified_collection_csv_path_str = str(unified_collection_csv_path)
 
     logging.info(
         f"digital-land --pipeline-name {pipeline_name} load-entries "
-        f" {actual_input_paths} {sqlite_artifact_path}"
+        f" {actual_input_paths_str} {sqlite_artifact_path_str}"
     )
 
-    api.load_entries_cmd(actual_input_paths, sqlite_artifact_path)
+    api.load_entries_cmd(actual_input_paths_str, sqlite_artifact_path_str)
 
     logging.info(
         f"digital-land --pipeline-name {pipeline_name} build-dataset "
-        f" {sqlite_artifact_path} {unified_collection_csv_path}"
+        f" {sqlite_artifact_path_str} {unified_collection_csv_path_str}"
     )
-    api.build_dataset_cmd(sqlite_artifact_path, unified_collection_csv_path)
+    api.build_dataset_cmd(sqlite_artifact_path_str, unified_collection_csv_path_str)
 
 
 def callable_push_s3_collection_task(**kwargs):
