@@ -4,7 +4,7 @@ from filecmp import cmpfiles
 from json import load
 from pathlib import Path
 from shutil import copy, copytree
-from unittest.mock import Mock, MagicMock
+from unittest.mock import call, Mock, MagicMock
 
 import pytest
 
@@ -14,6 +14,7 @@ from dags.base import (
     callable_collection_task,
     callable_dataset_task,
     callable_download_s3_resources_task,
+    callable_push_s3_dataset_task,
 )
 
 
@@ -67,6 +68,26 @@ def transformed_dir(data_dir, tmp_path):
         transformed_dir,
     )
     return transformed_dir
+
+
+@pytest.fixture
+def issue_dir(data_dir, tmp_path):
+    issue_dir = tmp_path.joinpath("issue")
+    copytree(
+        data_dir.joinpath("issue"),
+        issue_dir,
+    )
+    return issue_dir
+
+
+@pytest.fixture
+def dataset_dir(data_dir, tmp_path):
+    dataset_dir = tmp_path.joinpath("dataset")
+    copytree(
+        data_dir.joinpath("dataset"),
+        dataset_dir,
+    )
+    return dataset_dir
 
 
 @pytest.fixture
@@ -131,6 +152,7 @@ def kwargs(tmp_path):
     }
 
 
+# TODO move this to tests/unit
 def test_download_s3_resources(kwargs, mocker, tmp_path):
     mock_s3_request = MagicMock(
         return_value=(
@@ -269,3 +291,69 @@ def test_build_dataset(
         test_expected_results_dir.joinpath("dataset").iterdir(),
         shallow=False,
     )
+
+
+# TODO move this to tests/unit
+def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker):
+    #  Setup
+    mock_s3_client = MagicMock()
+
+    # Call
+    with mocker.patch(
+        "dags.base._get_environment", return_value="production"
+    ), mocker.patch(
+        "airflow.models.Variable.get", return_value="iamacollections3bucket"
+    ), mocker.patch(
+        "dags.base._get_s3_client", return_value=mock_s3_client
+    ):
+        callable_push_s3_dataset_task(**kwargs)
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"listed-building/transformed/{path.name}",
+                )
+                for path in transformed_dir.joinpath("listed-building").iterdir()
+            ]
+        )
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"brownfield-land/transformed/{path.name}",
+                )
+                for path in transformed_dir.joinpath("brownfield-land").iterdir()
+            ]
+        )
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"listed-building/issue/{path.name}",
+                )
+                for path in issue_dir.joinpath("listed-building").iterdir()
+            ]
+        )
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"brownfield-land/issue/{path.name}",
+                )
+                for path in issue_dir.joinpath("brownfield-land").iterdir()
+            ]
+        )
+        mock_s3_client.assert_has_calls(
+            [
+                call.upload_file(
+                    str(path),
+                    "iamacollections3bucket",
+                    f"listed-building/dataset/{path.name}",
+                )
+                for path in dataset_dir.iterdir()
+            ]
+        )

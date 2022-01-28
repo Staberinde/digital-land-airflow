@@ -17,7 +17,8 @@ from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
 
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+def _get_environment():
+    return os.environ.get("ENVIRONMENT", "development")
 
 
 def _get_api_instance(kwargs):
@@ -54,17 +55,21 @@ def _get_repo_name(kwargs):
 _get_resources_name = _get_repo_name
 
 
+def _get_s3_client():
+    return boto3.client("s3")
+
+
 def _upload_directory_to_s3(directory: Path, destination: str):
     files = directory.iterdir()
-    _upload_files_to_s3(files, directory, destination)
+    _upload_files_to_s3(files, destination)
 
 
-def _upload_files_to_s3(files, directory, destination):
-    s3 = boto3.resource("s3")
+def _upload_files_to_s3(files, destination):
+    s3_client = _get_s3_client()
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     for file_to_upload in files:
-        s3.meta.client.upload_file(
-            file_to_upload,
+        s3_client.upload_file(
+            str(file_to_upload),
             collection_s3_bucket,
             f"{destination}/{file_to_upload.name}",
         )
@@ -141,9 +146,10 @@ def callable_collection_task(**kwargs):
 
 
 def callable_commit_task(**kwargs):
-    if ENVIRONMENT != "production":
+    environment = _get_environment()
+    if environment != "production":
         raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'"
+            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
     collection_repository_path = _get_collection_repository_path(kwargs)
     repo = Repo(collection_repository_path)
@@ -243,9 +249,10 @@ def callable_build_dataset_task(**kwargs):
 
 
 def callable_push_s3_collection_task(**kwargs):
-    if ENVIRONMENT != "production":
+    environment = _get_environment()
+    if environment != "production":
         raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'"
+            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -264,15 +271,15 @@ def callable_push_s3_collection_task(**kwargs):
             "source.csv",
             "endpoint.csv",
         ],
-        directory=Path(collection_repository_path).joinpath("collection"),
         destination=f"{pipeline_name}/collection/",
     )
 
 
 def callable_push_s3_dataset_task(**kwargs):
-    if ENVIRONMENT != "production":
+    environment = _get_environment()
+    if environment != "production":
         raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {ENVIRONMENT} and not 'production'"
+            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -292,9 +299,7 @@ def callable_push_s3_dataset_task(**kwargs):
     )
 
     _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("dataset").joinpath(
-            pipeline_name,
-        ),
+        directory=collection_repository_path.joinpath("dataset"),
         destination=f"{pipeline_name}/dataset",
     )
 
