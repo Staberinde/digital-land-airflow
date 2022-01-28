@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
+from shutil import rmtree
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
@@ -41,7 +42,7 @@ def _get_api_instance(kwargs):
 
 
 def _get_collection_repository_path(kwargs):
-    return kwargs["ti"].xcom_pull(key="collection_repository_path")
+    return Path(kwargs["ti"].xcom_pull(key="collection_repository_path"))
 
 
 def _get_pipeline_name(kwargs):
@@ -79,7 +80,7 @@ def _get_organisation_csv(kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
     directory = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}")
-    directory.mkdir()
+    directory.mkdir(exist_ok=True)
     path = directory.joinpath("organisation.csv")
     organisation_csv_url = Variable.get("organisation_csv_url")
     response = requests.get(organisation_csv_url)
@@ -90,10 +91,10 @@ def _get_organisation_csv(kwargs):
 
 
 def callable_clone_task(**kwargs):
+    # TODO parameteriize git ref to use, and writer automated tests
     pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
     repo_name = _get_repo_name(kwargs)
-    # TODO add onsuccess branch to delete this dir
     repo_path = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}").joinpath(repo_name)
 
     repo_path.mkdir(parents=True)
@@ -169,6 +170,12 @@ def callable_dataset_task(**kwargs):
     organisation_csv_path = _get_organisation_csv(kwargs)
     issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
     issue_dir.mkdir(parents=True)
+    collection_repository_path.joinpath("transformed").joinpath(pipeline_name).mkdir(
+        exist_ok=True, parents=True
+    )
+    collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
+        exist_ok=True, parents=True
+    )
 
     for resource_file in resource_list:
         # Most digital_land.API() commands expect strings not pathlib.Path
@@ -304,14 +311,34 @@ def callable_push_s3_dataset_task(**kwargs):
     )
 
 
+def callable_working_directory_cleanup_task(**kwargs):
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    rmtree(collection_repository_path)
+
+
 def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
 # TODO autopopulate these by finding repos ending in `-collection` within `digital-land`
 pipelines = [
-    "listed-building",
+    "ancient-woodland",
+    "article-4-direction",
+    "boundary",
     "brownfield-land",
+    "brownfield-land",
+    "brownfield-site",
+    "conservation-area-appriasal",
+    "conservation-area",
+    "data-gov-uk",
+    "dataset",
+    "development-plan-document",
+    "development-policy-area",
+    "development-policy",
+    "listed-building",
+    "listed-building",
+    "local-plan",
+    "tree-preservation-order",
 ]
 for pipeline_name in pipelines:
     with DAG(
@@ -352,6 +379,10 @@ for pipeline_name in pipelines:
             task_id="push_s3_dataset",
             python_callable=callable_push_s3_dataset_task,
         )
+        working_directory_cleanup = PythonOperator(
+            task_id="working_directory_cleaanup",
+            python_callable=callable_working_directory_cleanup_task,
+        )
 
         clone >> download_s3_resources
         download_s3_resources >> collect
@@ -364,6 +395,10 @@ for pipeline_name in pipelines:
         dataset >> build_dataset
         build_dataset >> commit_harmonised
         build_dataset >> push_s3_dataset
+        commit_harmonised >> working_directory_cleanup
+        push_s3_dataset >> working_directory_cleanup
+        push_s3_collection >> working_directory_cleanup
+        commit_collection >> working_directory_cleanup
 
         # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{kebab_to_pascal_case(pipeline_name)}Dag"] = InstantiatedDag

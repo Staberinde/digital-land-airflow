@@ -237,15 +237,10 @@ def test_dataset(
     tmp_path.joinpath("pipeline").mkdir()
 
     transformed_dir = tmp_path.joinpath("transformed")
-    transformed_dir.joinpath("brownfield-land").mkdir(parents=True)
-    transformed_dir.joinpath("listed-building").mkdir()
 
     harmonised_dir = tmp_path.joinpath("harmonised")
-    harmonised_dir.joinpath("brownfield-land").mkdir(parents=True)
-    harmonised_dir.joinpath("listed-building").mkdir()
 
     issue_dir = tmp_path.joinpath("issue")
-    issue_dir.joinpath("brownfield-land").mkdir(parents=True)
 
     # Call
     with mocker.patch(
