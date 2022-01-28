@@ -1,7 +1,7 @@
 PACKAGE=dags.base
 
-include makerules/python.mk
 include makerules/makerules.mk
+include makerules/python.mk
 
 GDAL := $(shell command -v ogr2ogr 2> /dev/null)
 UNAME := $(shell uname)

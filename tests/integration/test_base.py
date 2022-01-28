@@ -198,17 +198,17 @@ def test_dataset(
         transformed_dir,
         test_expected_results_dir.joinpath("transformed"),
         test_expected_results_dir.joinpath("transformed").iterdir(),
-        shallow=False
+        shallow=False,
     )
     cmpfiles(
         harmonised_dir,
         test_expected_results_dir.joinpath("harmonised"),
         test_expected_results_dir.joinpath("harmonised").iterdir(),
-        shallow=False
+        shallow=False,
     )
     cmpfiles(
         issue_dir,
         test_expected_results_dir.joinpath("issue"),
         test_expected_results_dir.joinpath("issue").iterdir(),
-        shallow=False
+        shallow=False,
     )
