@@ -24,7 +24,12 @@ class DigitalLandAirflowTestSetupException(Exception):
 
 
 @pytest.fixture
-def collection_resources_file(tmp_path):
+def data_dir():
+    return Path(__file__).parent.parent.joinpath("data")
+
+
+@pytest.fixture
+def collection_resources_file(data_dir, tmp_path):
     collection_dir = tmp_path.joinpath("collection")
     collection_dir.mkdir(exist_ok=True)
     resource_file = collection_dir.joinpath("resource.csv")
@@ -35,27 +40,27 @@ def collection_resources_file(tmp_path):
         )
     resource_file.touch()
     copy(
-        Path(__file__).parent.parent.joinpath("data/collection/resources/resource.csv"),
+        data_dir.joinpath("collection").joinpath("resources").joinpath("resource.csv"),
         resource_file,
     )
     return resource_file
 
 
 @pytest.fixture
-def collection_resources_dir(tmp_path):
+def collection_resources_dir(data_dir, tmp_path):
     resources_dir = tmp_path.joinpath("collection").joinpath("resource")
     copytree(
-        Path(__file__).parent.parent.joinpath("data/collection/resources/resource"),
+        data_dir.joinpath("collection").joinpath("resources").joinpath("resource"),
         resources_dir,
     )
     return resources_dir
 
 
 @pytest.fixture
-def collection_metadata_dir(tmp_path):
+def collection_metadata_dir(data_dir, tmp_path):
     collection_dir = tmp_path.joinpath("collection")
     copytree(
-        Path(__file__).parent.parent.joinpath("data/collection/csv"),
+        data_dir.joinpath("collection").joinpath("csv"),
         collection_dir,
         dirs_exist_ok=True,
     )
@@ -63,12 +68,12 @@ def collection_metadata_dir(tmp_path):
 
 
 @pytest.fixture
-def collection_payload_dir(tmp_path):
+def collection_payload_dir(data_dir, tmp_path):
     log_dir = (
         tmp_path.joinpath("collection").joinpath("log").joinpath(TODAY.isoformat())
     )
     copytree(
-        Path(__file__).parent.parent.joinpath("data/collection/log"),
+        data_dir.joinpath("collection").joinpath("log"),
         log_dir,
         dirs_exist_ok=True,
     )
@@ -88,6 +93,11 @@ def endpoint_requests_mock(requests_mock, collection_metadata_dir):
             # requests_mock.exceptions.NoMockAddress if un-mocked URL requested
             if not row["end-date"] or date.fromisoformat(row["end-date"]) >= TODAY
         ]
+
+
+@pytest.fixture
+def expected_results_dir(data_dir):
+    return data_dir.joinpath("expected_results")
 
 
 @pytest.fixture
@@ -154,18 +164,26 @@ def test_dataset(
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
-    requests_mock,
-    mocker,
+    expected_results_dir,
     kwargs,
+    mocker,
+    requests_mock,
     tmp_path,
 ):
+    test_expected_results_dir = expected_results_dir.joinpath("test_dataset")
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
-    tmp_path.joinpath("transformed").joinpath("brownfield-land").mkdir(parents=True)
-    tmp_path.joinpath("transformed").joinpath("listed-building").mkdir()
-    tmp_path.joinpath("harmonised").joinpath("brownfield-land").mkdir(parents=True)
-    tmp_path.joinpath("harmonised").joinpath("listed-building").mkdir()
-    tmp_path.joinpath("issue").joinpath("brownfield-land").mkdir(parents=True)
+
+    transformed_dir = tmp_path.joinpath("transformed")
+    transformed_dir.joinpath("brownfield-land").mkdir(parents=True)
+    transformed_dir.joinpath("listed-building").mkdir()
+
+    harmonised_dir = tmp_path.joinpath("harmonised")
+    harmonised_dir.joinpath("brownfield-land").mkdir(parents=True)
+    harmonised_dir.joinpath("listed-building").mkdir()
+
+    issue_dir = tmp_path.joinpath("issue")
+    issue_dir.joinpath("brownfield-land").mkdir(parents=True)
 
     # Call
     with mocker.patch(
