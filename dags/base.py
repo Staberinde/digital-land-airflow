@@ -57,9 +57,9 @@ def _upload_files_to_s3(files, directory, destination):
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     for file_to_upload in files:
         s3.meta.client.upload_file(
-            Path(directory).joinpath(file_to_upload),
+            file_to_upload,
             collection_s3_bucket,
-            f"{destination}/{file_to_upload}",
+            f"{destination}/{file_to_upload.name}",
         )
 
 
@@ -86,7 +86,7 @@ def callable_clone_task(**kwargs):
 
     repo_path.mkdir(parents=True)
     Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
-    kwargs["ti"].xcom_push("collection_repository_path", repo_path)
+    kwargs["ti"].xcom_push("collection_repository_path", str(repo_path))
 
 
 def callable_collect_task(**kwargs):
@@ -115,6 +115,7 @@ def callable_download_s3_resources_task(**kwargs):
     destination_dir = (
         Path(collection_repository_path).joinpath("collection").joinpath("resource")
     )
+    destination_dir.mkdir(parents=True)
     cp = CloudPath(s3_resource_path)
     cp.download_to(destination_dir)
     logging.info(
@@ -159,7 +160,7 @@ def callable_dataset_task(**kwargs):
     for resource_file in resource_list:
         # Most digital_land.API() commands expect strings not pathlib.Path
         pipeline_cmd_args = {
-            "input_path": str(resource_dir.joinpath(resource_file)),
+            "input_path": str(resource_file),
             "output_path": str(
                 collection_repository_path.joinpath("transformed")
                 .joinpath(pipeline_name)
