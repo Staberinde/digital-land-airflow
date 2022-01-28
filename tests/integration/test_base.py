@@ -1,5 +1,6 @@
 from csv import DictReader
 from datetime import date
+from filecmp import cmpfiles
 from json import load
 from pathlib import Path
 from shutil import copy, copytree
@@ -193,3 +194,21 @@ def test_dataset(
         callable_dataset_task(**kwargs)
 
     # Assert
+    cmpfiles(
+        transformed_dir,
+        test_expected_results_dir.joinpath("transformed"),
+        test_expected_results_dir.joinpath("transformed").iterdir(),
+        shallow=False
+    )
+    cmpfiles(
+        harmonised_dir,
+        test_expected_results_dir.joinpath("harmonised"),
+        test_expected_results_dir.joinpath("harmonised").iterdir(),
+        shallow=False
+    )
+    cmpfiles(
+        issue_dir,
+        test_expected_results_dir.joinpath("issue"),
+        test_expected_results_dir.joinpath("issue").iterdir(),
+        shallow=False
+    )
