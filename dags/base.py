@@ -47,6 +47,13 @@ def _get_pipeline_name(kwargs):
     return kwargs["dag"]._dag_id
 
 
+def _get_repo_name(kwargs):
+    return f"{_get_pipeline_name(kwargs)}-collection"
+
+
+_get_resources_name = _get_repo_name
+
+
 def _upload_directory_to_s3(directory: Path, destination: str):
     files = directory.iterdir()
     _upload_files_to_s3(files, directory, destination)
@@ -80,7 +87,7 @@ def _get_organisation_csv(kwargs):
 def callable_clone_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
-    repo_name = f"{pipeline_name}-collection"
+    repo_name = _get_repo_name(kwargs)
     # TODO add onsuccess branch to delete this dir
     repo_path = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}").joinpath(repo_name)
 
@@ -105,12 +112,12 @@ def callable_collect_task(**kwargs):
 
 
 def callable_download_s3_resources_task(**kwargs):
-    pipeline_name = _get_pipeline_name(kwargs)
+    s3_resource_name = _get_resources_name(kwargs)
     collection_s3_bucket = Variable.get("collection_s3_bucket")
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     s3_resource_path = (
-        f"s3://{collection_s3_bucket}/{pipeline_name}/collection/resource/"
+        f"s3://{collection_s3_bucket}/{s3_resource_name}/collection/resource/"
     )
     destination_dir = (
         Path(collection_repository_path).joinpath("collection").joinpath("resource")

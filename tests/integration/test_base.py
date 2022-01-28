@@ -4,7 +4,7 @@ from filecmp import cmpfiles
 from json import load
 from pathlib import Path
 from shutil import copy, copytree
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 
 import pytest
 
@@ -13,6 +13,7 @@ from dags.base import (
     callable_collect_task,
     callable_collection_task,
     callable_dataset_task,
+    callable_download_s3_resources_task,
 )
 
 
@@ -130,6 +131,31 @@ def kwargs(tmp_path):
     }
 
 
+def test_download_s3_resources(kwargs, mocker, tmp_path):
+    mock_s3_request = MagicMock(
+        return_value=(
+            Mock(status_code=200),
+            {
+                "ContentLength": 7,
+                "Body": MagicMock(**{"read.side_effect": [b"29183723", b""]}),
+            },
+        ),
+    )
+    with mocker.patch(
+        "airflow.models.Variable.get", return_value="iamacollections3bucket"
+    ), mocker.patch(
+        "botocore.client.BaseClient._make_request", side_effect=mock_s3_request
+    ):
+        callable_download_s3_resources_task(**kwargs)
+        assert all(
+            [
+                request[1][1]["url_path"]
+                == "/iamacollections3bucket/listed-building-collection/collection/resource/"
+                for request in mock_s3_request.mock_calls
+            ]
+        )
+
+
 def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_path):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
@@ -176,6 +202,7 @@ def test_dataset(
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
+    data_dir,
     expected_results_dir,
     kwargs,
     mocker,
@@ -200,7 +227,7 @@ def test_dataset(
     # Call
     with mocker.patch(
         "dags.base._get_organisation_csv",
-        return_value=Path(__file__).parent.parent.joinpath("data/organisation.csv"),
+        return_value=data_dir.joinpath("organisation.csv"),
     ):
         callable_dataset_task(**kwargs)
 
