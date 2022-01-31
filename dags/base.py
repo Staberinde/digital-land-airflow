@@ -155,16 +155,28 @@ def callable_collection_task(**kwargs):
 
 
 def callable_commit_task(**kwargs):
+    paths_to_commit = kwargs["paths_to_commit"]
     environment = _get_environment()
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    repo = Repo(collection_repository_path)
+
+    logging.info(f"Staging {paths_to_commit} for commit")
+    repo.git.add(*paths_to_commit)
+    # Assert every change staged
+    assert len(repo.index.diff(None)) == 0
+
+    commit_message = f"Data {datetime.now().isoformat()}"
+    logging.info(f"Creating commit {commit_message}")
+    repo.index.commit(commit_message)
+
     if environment != "production":
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
-    collection_repository_path = _get_collection_repository_path(kwargs)
-    repo = Repo(collection_repository_path)
-    repo.git.add(update=False)
-    repo.index.commit(f"Data {datetime.now().isoformat()}")
+    upstream_urls = list(repo.remotes["origin"].urls)
+    assert len(upstream_urls) == 1
     repo.remotes["origin"].push()
+    logging.info(f"Commit {commit_message} pushed to {upstream_urls[0]}")
 
 
 def callable_dataset_task(**kwargs):
@@ -344,7 +356,10 @@ pipelines = [
 ]
 for pipeline_name in pipelines:
     with DAG(
-        pipeline_name, schedule_interval=timedelta(days=1), start_date=datetime.now()
+        pipeline_name,
+        schedule_interval=timedelta(days=1),
+        start_date=datetime.now(),
+        render_template_as_native_obj=True,
     ) as InstantiatedDag:
 
         clone = PythonOperator(task_id="clone", python_callable=callable_clone_task)
@@ -359,13 +374,21 @@ for pipeline_name in pipelines:
             task_id="collection", python_callable=callable_collection_task
         )
         commit_collect = PythonOperator(
-            task_id="commit_collect", python_callable=callable_commit_task
+            task_id="commit_collect",
+            python_callable=callable_commit_task,
+            op_kwargs={"paths_to_commit": ["collection/log", "collection/resource"]},
         )
         commit_collection = PythonOperator(
-            task_id="commit_collection", python_callable=callable_commit_task
+            task_id="commit_collection",
+            python_callable=callable_commit_task,
+            op_kwargs={
+                "paths_to_commit": ["collection/log.csv", "collection/resource.csv"]
+            },
         )
         commit_harmonised = PythonOperator(
-            task_id="commit_harmonised", python_callable=callable_commit_task
+            task_id="commit_harmonised",
+            python_callable=callable_commit_task,
+            op_kwargs={"paths_to_commit": ["harmonised"]},
         )
         push_s3_collection = PythonOperator(
             task_id="push_s3_collection",

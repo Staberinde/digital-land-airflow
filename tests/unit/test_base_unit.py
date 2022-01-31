@@ -2,6 +2,7 @@ from unittest.mock import call, Mock, MagicMock
 
 from dags.base import (
     callable_clone_task,
+    callable_commit_task,
     callable_download_s3_resources_task,
     callable_push_s3_collection_task,
     callable_push_s3_dataset_task,
@@ -50,10 +51,32 @@ def test_download_s3_resources(kwargs, mocker, tmp_path):
     )
 
 
+def test_commit(kwargs, mocker, tmp_path):
+    # Setup
+    tmp_path.joinpath("foo").touch()
+    kwargs["paths_to_commit"] = ["foo"]
+    mocker.patch("dags.base._get_environment", return_value="production")
+    push_mock = MagicMock()
+    mock_repo = mocker.patch("dags.base.Repo")
+    mock_repo.configure_mock(
+        **{
+            "return_value.remotes.__getitem__.return_value.urls": ["iamaurl"],
+            "return_value.remotes.__getitem__.return_value.push": push_mock,
+        }
+    )
+    # Call
+    callable_commit_task(**kwargs)
+    # Assert
+    mock_repo.assert_called_once_with(tmp_path)
+    mock_repo.return_value.git.add.assert_called_once_with("foo")
+    mock_repo.return_value.index.commit.assert_called_once()
+    push_mock.assert_called_once()
+
+
 def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker):
     #  Setup
     mock_s3_client = MagicMock()
-    mocker.patch("dags.base._get_environment", return_value="production"),
+    mocker.patch("dags.base._get_environment", return_value="production")
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch("dags.base._get_s3_client", return_value=mock_s3_client)
     # Call
