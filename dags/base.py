@@ -56,6 +56,10 @@ def _get_repo_name(kwargs):
 _get_resources_name = _get_repo_name
 
 
+def _get_temporary_directory():
+    return Path("/tmp")
+
+
 def _get_s3_client():
     return boto3.client("s3")
 
@@ -95,7 +99,11 @@ def callable_clone_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
     repo_name = _get_repo_name(kwargs)
-    repo_path = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}").joinpath(repo_name)
+    repo_path = (
+        _get_temporary_directory()
+        .joinpath(f"{pipeline_name}_{run_id}")
+        .joinpath(repo_name)
+    )
 
     repo_path.mkdir(parents=True)
     Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
@@ -324,20 +332,14 @@ def kebab_to_pascal_case(kebab_case_str):
 pipelines = [
     "ancient-woodland",
     "article-4-direction",
-    "boundary",
-    "brownfield-land",
     "brownfield-land",
     "brownfield-site",
-    "conservation-area-appriasal",
     "conservation-area",
-    "data-gov-uk",
     "dataset",
     "development-plan-document",
     "development-policy-area",
     "development-policy",
     "listed-building",
-    "listed-building",
-    "local-plan",
     "tree-preservation-order",
 ]
 for pipeline_name in pipelines:
