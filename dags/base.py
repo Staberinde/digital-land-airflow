@@ -15,7 +15,7 @@ from humps import pascalize
 import requests
 
 from digital_land.api import DigitalLandApi
-from digital_land.specification import specification_path
+from digital_land.specification import Specification, specification_path
 
 
 def _get_environment():
@@ -26,7 +26,7 @@ def _get_api_instance(kwargs):
     pipeline_name = kwargs["dag"]._dag_id
 
     collection_repository_path = _get_collection_repository_path(kwargs)
-    pipeline_dir = Path(collection_repository_path).joinpath("pipeline")
+    pipeline_dir = collection_repository_path.joinpath("pipeline")
     assert pipeline_dir.exists()
 
     logging.info(
@@ -83,7 +83,7 @@ def _upload_files_to_s3(files, destination):
 def _get_organisation_csv(kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     run_id = kwargs["run_id"]
-    directory = Path("/tmp").joinpath(f"{pipeline_name}_{run_id}")
+    directory = _get_temporary_directory().joinpath(f"{pipeline_name}_{run_id}")
     directory.mkdir(exist_ok=True)
     path = directory.joinpath("organisation.csv")
     organisation_csv_url = Variable.get("organisation_csv_url")
@@ -114,8 +114,8 @@ def callable_collect_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
     api = _get_api_instance(kwargs)
 
-    endpoint_path = Path(collection_repository_path).joinpath("collection/endpoint.csv")
-    collection_dir = Path(collection_repository_path).joinpath("collection")
+    endpoint_path = collection_repository_path.joinpath("collection/endpoint.csv")
+    collection_dir = collection_repository_path.joinpath("collection")
 
     logging.info(
         f"Calling collect_cmd with endpoint_path {endpoint_path} and collection_dir {collection_dir}"
@@ -133,8 +133,8 @@ def callable_download_s3_resources_task(**kwargs):
     s3_resource_path = (
         f"s3://{collection_s3_bucket}/{s3_resource_name}/collection/resource/"
     )
-    destination_dir = (
-        Path(collection_repository_path).joinpath("collection").joinpath("resource")
+    destination_dir = collection_repository_path.joinpath("collection").joinpath(
+        "resource"
     )
     destination_dir.mkdir(parents=True, exist_ok=True)
     cp = CloudPath(s3_resource_path)
@@ -147,7 +147,7 @@ def callable_download_s3_resources_task(**kwargs):
 def callable_collection_task(**kwargs):
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
-    collection_dir = Path(collection_repository_path).joinpath("collection")
+    collection_dir = collection_repository_path.joinpath("collection")
     logging.info(
         f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"
     )
@@ -184,7 +184,7 @@ def callable_dataset_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
-    collection_dir = Path(collection_repository_path).joinpath("collection")
+    collection_dir = collection_repository_path.joinpath("collection")
     resource_dir = collection_dir.joinpath("resource")
     resource_list = resource_dir.iterdir()
     organisation_csv_path = _get_organisation_csv(kwargs)
@@ -232,8 +232,8 @@ def callable_build_dataset_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
-    collection_dir = Path(collection_repository_path).joinpath("collection")
-    resource_list = Path(collection_dir).joinpath("resource").iterdir()
+    collection_dir = collection_repository_path.joinpath("collection")
+    resource_list = collection_dir.joinpath("resource").iterdir()
     potential_input_paths = [
         collection_repository_path.joinpath("transformed")
         .joinpath(pipeline_name)
@@ -310,7 +310,10 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
-# TODO autopopulate these by finding repos ending in `-collection` within `digital-land`
+specification = Specification(specification_path)
+specification = Specification(specification_path)
+specification.load_pipeline(specification_path)
+#  pipelines = specification.pipeline.keys()
 pipelines = [
     "ancient-woodland",
     "article-4-direction",
@@ -399,7 +402,7 @@ for pipeline_name in pipelines:
             },
         )
         working_directory_cleanup = PythonOperator(
-            task_id="working_directory_cleaanup",
+            task_id="working_directory_cleanup",
             python_callable=callable_working_directory_cleanup_task,
         )
 
