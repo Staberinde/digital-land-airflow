@@ -346,7 +346,7 @@ for pipeline_name in pipelines:
         commit_collect = PythonOperator(
             task_id="commit_collect",
             python_callable=callable_commit_task,
-            op_kwargs={"paths_to_commit": ["collection/log", "collection/resource"]},
+            op_kwargs={"paths_to_commit": ["collection/log"]},
         )
         commit_collection = PythonOperator(
             task_id="commit_collection",
