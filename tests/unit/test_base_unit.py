@@ -4,8 +4,7 @@ from dags.base import (
     callable_clone_task,
     callable_commit_task,
     callable_download_s3_resources_task,
-    callable_push_s3_collection_task,
-    callable_push_s3_dataset_task,
+    callable_push_s3_task,
 )
 
 
@@ -75,12 +74,18 @@ def test_commit(kwargs, mocker, tmp_path):
 
 def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker):
     #  Setup
+    kwargs["directories_to_push"] = [
+        ("transformed/listed-building", "listed-building/transformed"),
+        ("issue/listed-building", "listed-building/issue"),
+        ("dataset", "listed-building/dataset"),
+    ]
+    kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
     mocker.patch("dags.base._get_environment", return_value="production")
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch("dags.base._get_s3_client", return_value=mock_s3_client)
     # Call
-    callable_push_s3_dataset_task(**kwargs)
+    callable_push_s3_task(**kwargs)
     for collection_dir in transformed_dir.iterdir():
         mock_s3_client.assert_has_calls(
             [
@@ -119,12 +124,26 @@ def test_push_s3_collection(
     kwargs, collection_resources_dir, collection_metadata_dir, mocker
 ):
     #  Setup
+    kwargs["directories_to_push"] = [
+        ("collection/resource", "listed-building/collection/resource"),
+    ]
+    kwargs["files_to_push"] = [
+        (
+            [
+                "collection/endpoint.csv",
+                "collection/log.csv",
+                "collection/resource.csv",
+                "collection/source.csv",
+            ],
+            "listed-building/collection",
+        ),
+    ]
     mock_s3_client = MagicMock()
     mocker.patch("dags.base._get_environment", return_value="production")
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch("dags.base._get_s3_client", return_value=mock_s3_client)
     # Call
-    callable_push_s3_collection_task(**kwargs)
+    callable_push_s3_task(**kwargs)
     # Assert
     mock_s3_client.assert_has_calls(
         [

@@ -275,60 +275,30 @@ def callable_build_dataset_task(**kwargs):
     api.build_dataset_cmd(sqlite_artifact_path_str, unified_collection_csv_path_str)
 
 
-def callable_push_s3_collection_task(**kwargs):
+def callable_push_s3_task(**kwargs):
     environment = _get_environment()
     if environment != "production":
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
-    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
+    directories_to_push = kwargs["directories_to_push"]
+    files_to_push = kwargs["files_to_push"]
 
-    _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("collection").joinpath(
-            "resource"
-        ),
-        destination=f"{pipeline_name}/collection/resource",
-    )
-
-    _upload_files_to_s3(
-        files=[
-            collection_repository_path.joinpath("collection").joinpath("endpoint.csv"),
-            collection_repository_path.joinpath("collection").joinpath("log.csv"),
-            collection_repository_path.joinpath("collection").joinpath("resource.csv"),
-            collection_repository_path.joinpath("collection").joinpath("source.csv"),
-        ],
-        destination=f"{pipeline_name}/collection",
-    )
-
-
-def callable_push_s3_dataset_task(**kwargs):
-    environment = _get_environment()
-    if environment != "production":
-        raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
+    for source_directory, destination_directory in directories_to_push:
+        _upload_directory_to_s3(
+            directory=collection_repository_path.joinpath(source_directory),
+            destination=destination_directory,
         )
-    pipeline_name = _get_pipeline_name(kwargs)
-    collection_repository_path = _get_collection_repository_path(kwargs)
 
-    _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("transformed").joinpath(
-            pipeline_name,
-        ),
-        destination=f"{pipeline_name}/transformed",
-    )
-
-    _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("issue").joinpath(
-            pipeline_name,
-        ),
-        destination=f"{pipeline_name}/issue",
-    )
-
-    _upload_directory_to_s3(
-        directory=collection_repository_path.joinpath("dataset"),
-        destination=f"{pipeline_name}/dataset",
-    )
+    for source_files, destination_directory in files_to_push:
+        _upload_files_to_s3(
+            files=[
+                collection_repository_path.joinpath(filepath)
+                for filepath in source_files
+            ],
+            destination=destination_directory,
+        )
 
 
 def callable_working_directory_cleanup_task(**kwargs):
@@ -392,7 +362,23 @@ for pipeline_name in pipelines:
         )
         push_s3_collection = PythonOperator(
             task_id="push_s3_collection",
-            python_callable=callable_push_s3_collection_task,
+            python_callable=callable_push_s3_task,
+            op_kwargs={
+                "directories_to_push": [
+                    ("collection/resource", f"{pipeline_name}/collection/resource"),
+                ],
+                "files_to_push": [
+                    (
+                        [
+                            "collection/endpoint.csv",
+                            "collection/log.csv",
+                            "collection/resource.csv",
+                            "collection/source.csv",
+                        ],
+                        f"{pipeline_name}/collection",
+                    ),
+                ],
+            },
         )
         dataset = PythonOperator(
             task_id="dataset", python_callable=callable_dataset_task
@@ -402,7 +388,15 @@ for pipeline_name in pipelines:
         )
         push_s3_dataset = PythonOperator(
             task_id="push_s3_dataset",
-            python_callable=callable_push_s3_dataset_task,
+            python_callable=callable_push_s3_task,
+            op_kwargs={
+                "directories_to_push": [
+                    (f"transformed/{pipeline_name}", f"{pipeline_name}/transformed"),
+                    (f"issue/{pipeline_name}", f"{pipeline_name}/issue"),
+                    ("dataset", f"{pipeline_name}/dataset"),
+                ],
+                "files_to_push": [],
+            },
         )
         working_directory_cleanup = PythonOperator(
             task_id="working_directory_cleaanup",
