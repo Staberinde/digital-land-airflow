@@ -24,7 +24,7 @@ def test_clone(kwargs, mocker, tmp_path):
     )
 
 
-def test_download_s3_resources(kwargs, mocker, tmp_path):
+def test_download_s3_resources(kwargs, collection_resources_dir, mocker, tmp_path):
     #  Setup
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mock_s3_request = mocker.patch(

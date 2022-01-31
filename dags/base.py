@@ -136,7 +136,7 @@ def callable_download_s3_resources_task(**kwargs):
     destination_dir = (
         Path(collection_repository_path).joinpath("collection").joinpath("resource")
     )
-    destination_dir.mkdir(parents=True)
+    destination_dir.mkdir(parents=True, exist_ok=True)
     cp = CloudPath(s3_resource_path)
     cp.download_to(destination_dir)
     logging.info(
