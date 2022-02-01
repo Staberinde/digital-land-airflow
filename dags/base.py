@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-import requests
 from shutil import rmtree
 
 from airflow import DAG
@@ -13,9 +12,10 @@ import boto3
 from cloudpathlib import CloudPath
 from git import Repo
 from humps import pascalize
+import requests
 
 from digital_land.api import DigitalLandApi
-from digital_land.specification import specification_path
+from digital_land.specification import Specification, specification_path
 
 
 def _get_environment():
@@ -310,32 +310,24 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
-def get_all_repos():
-    all_repos = []
-    page = 1
-    number_results = 100
-    while True:
-        repos_request = requests.get(
-            "https://api.github.com/orgs/digital-land/repos",
-            params={"per_page": number_results, "type": "public", "page": page},
-        )
-        repos_request.raise_for_status()
-        repos = repos_request.json()
-        all_repos.extend(repos)
-        page = page + 1
-        if len(repos) < number_results:
-            break
-    return all_repos
-
-
-def get_all_pipeline_names():
-    all_repos = get_all_repos()
-    suffix = "-collection"
-    collection_repos = filter(lambda x: x["name"][-len(suffix) :] == suffix, all_repos)
-    return [repo["name"][:-11] for repo in collection_repos]
-
-
-for pipeline_name in get_all_pipeline_names():
+specification = Specification(specification_path)
+specification = Specification(specification_path)
+specification.load_pipeline(specification_path)
+#  pipelines = specification.pipeline.keys()
+pipelines = [
+    "ancient-woodland",
+    "article-4-direction",
+    "brownfield-land",
+    "brownfield-site",
+    "conservation-area",
+    "dataset",
+    "development-plan-document",
+    "development-policy-area",
+    "development-policy",
+    "listed-building",
+    "tree-preservation-order",
+]
+for pipeline_name in pipelines:
     with DAG(
         pipeline_name,
         schedule_interval=timedelta(days=1),
