@@ -11,12 +11,17 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "digital-land@git+https://github.com/digital-land/digital-land-python",
-        "specification@git+https://github.com/digital-land/specification",
+        # Data fetchers
         "GitPython~=3.1.0",
-        "pyhumps~=3.5.0",
         "boto3~=1.20.0",
         "cloudpathlib",
+        # Pipeline dependencies
+        "pip",  # This is here to ensure we are using the latest version
+        "csvkit",  # This is a pipeline dep
+        "digital-land@git+https://github.com/digital-land/digital-land-python",
+        "specification@git+https://github.com/digital-land/specification",
+        # Utils
+        "pyhumps~=3.5.0",
     ],
     setup_requires=["pytest-runner"],
     extras_require={

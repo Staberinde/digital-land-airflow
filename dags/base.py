@@ -1,3 +1,4 @@
+from csv import DictReader
 import logging
 import os
 from datetime import datetime, timedelta
@@ -15,7 +16,7 @@ from humps import pascalize
 import requests
 
 from digital_land.api import DigitalLandApi
-from digital_land.specification import Specification, specification_path
+from digital_land.specification import specification_path
 
 
 def _get_environment():
@@ -163,7 +164,8 @@ def callable_commit_task(**kwargs):
     logging.info(f"Staging {paths_to_commit} for commit")
     repo.git.add(*paths_to_commit)
     # Assert every change staged
-    assert len(repo.index.diff(None)) == 0
+    diff_against_staged = repo.index.diff(None)
+    assert len(diff_against_staged) == 0, list(map(str, diff_against_staged))
 
     commit_message = f"Data {datetime.now().isoformat()}"
     logging.info(f"Creating commit {commit_message}")
@@ -174,7 +176,7 @@ def callable_commit_task(**kwargs):
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
     upstream_urls = list(repo.remotes["origin"].urls)
-    assert len(upstream_urls) == 1
+    assert len(upstream_urls) == 1, upstream_urls
     repo.remotes["origin"].push()
     logging.info(f"Commit {commit_message} pushed to {upstream_urls[0]}")
 
@@ -310,24 +312,16 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
-specification = Specification(specification_path)
-specification = Specification(specification_path)
-specification.load_pipeline(specification_path)
-#  pipelines = specification.pipeline.keys()
-pipelines = [
-    "ancient-woodland",
-    "article-4-direction",
-    "brownfield-land",
-    "brownfield-site",
-    "conservation-area",
-    "dataset",
-    "development-plan-document",
-    "development-policy-area",
-    "development-policy",
-    "listed-building",
-    "tree-preservation-order",
-]
-for pipeline_name in pipelines:
+def get_all_pipeline_names():
+    return [
+        collection["collection"]
+        for collection in DictReader(
+            Path(specification_path).joinpath("collection.csv").open()
+        )
+    ]
+
+
+for pipeline_name in get_all_pipeline_names():
     with DAG(
         pipeline_name,
         schedule_interval=timedelta(days=1),
