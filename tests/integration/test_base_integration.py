@@ -104,6 +104,65 @@ def test_dataset(
     )
 
 
+def test_dataset_specified_resources(
+    collection_metadata_dir,
+    collection_resources_dir,
+    collection_resources_file,
+    data_dir,
+    expected_results_dir,
+    kwargs_specified_resources,
+    mocker,
+    requests_mock,
+    tmp_path,
+):
+    test_expected_results_dir = expected_results_dir.joinpath("test_dataset")
+    # Setup
+    tmp_path.joinpath("pipeline").mkdir()
+
+    transformed_dir = tmp_path.joinpath("transformed")
+
+    harmonised_dir = tmp_path.joinpath("harmonised")
+
+    issue_dir = tmp_path.joinpath("issue")
+
+    # Call
+    with mocker.patch(
+        "dags.base._get_organisation_csv",
+        return_value=data_dir.joinpath("organisation.csv"),
+    ):
+        callable_dataset_task(**kwargs_specified_resources)
+
+    # Assert
+    cmpfiles(
+        transformed_dir,
+        test_expected_results_dir.joinpath("transformed"),
+        [
+            test_expected_results_dir.joinpath("transformed").joinpath(resource)
+            for resource in kwargs_specified_resources["params"]["resource_hashes"]
+        ],
+        shallow=False,
+    )
+    cmpfiles(
+        harmonised_dir,
+        test_expected_results_dir.joinpath("harmonised"),
+        [
+            test_expected_results_dir.joinpath("harmonised").joinpath(resource)
+            for resource in kwargs_specified_resources["params"]["resource_hashes"]
+        ],
+        shallow=False,
+    )
+    cmpfiles(
+        issue_dir,
+        test_expected_results_dir.joinpath("issue"),
+        [
+            test_expected_results_dir.joinpath("issue").joinpath(resource)
+            for resource in kwargs_specified_resources["params"]["resource_hashes"]
+            if test_expected_results_dir.joinpath("issue").joinpath(resource).exists()
+        ],
+        shallow=False,
+    )
+
+
 def test_build_dataset(
     collection_resources_dir, expected_results_dir, transformed_dir, kwargs, tmp_path
 ):
@@ -119,5 +178,31 @@ def test_build_dataset(
         tmp_path.joinpath("dataset"),
         test_expected_results_dir.joinpath("dataset"),
         test_expected_results_dir.joinpath("dataset").iterdir(),
+        shallow=False,
+    )
+
+
+def test_build_dataset_specified_resources(
+    collection_resources_dir,
+    expected_results_dir,
+    transformed_dir,
+    kwargs_specified_resources,
+    tmp_path,
+):
+    # Setup
+    tmp_path.joinpath("pipeline").mkdir()
+    test_expected_results_dir = expected_results_dir.joinpath("test_build_dataset")
+
+    # Call
+    callable_build_dataset_task(**kwargs_specified_resources)
+
+    # Assert
+    cmpfiles(
+        tmp_path.joinpath("dataset"),
+        test_expected_results_dir.joinpath("dataset"),
+        [
+            test_expected_results_dir.joinpath("dataset").joinpath(resource)
+            for resource in kwargs_specified_resources["params"]["resource_hashes"]
+        ],
         shallow=False,
     )

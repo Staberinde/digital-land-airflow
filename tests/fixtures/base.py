@@ -138,3 +138,18 @@ def kwargs(tmp_path):
         # This should increment with each test execution
         "run_id": tmp_path.parent.name.split("-")[-1],
     }
+
+
+@pytest.fixture
+def kwargs_specified_resources(kwargs):
+    kwargs.update(
+        {
+            "params": {
+                "resource_hashes": [
+                    "efbdafb929921097a6e002188e281047bb4d512d40a8f88ade26cbb44118f0e3",
+                    "ebf9e1df4e638a318b6d79335c27c896c77dfcf3c2592cdb75d419f3d50362f2",
+                ]
+            }
+        }
+    )
+    return kwargs

@@ -83,6 +83,26 @@ def _get_s3_client():
     return boto3.client("s3")
 
 
+def _get_resource_list(kwargs):
+    collection_repository_path = _get_collection_repository_path(kwargs)
+    collection_dir = collection_repository_path.joinpath("collection")
+    resource_dir = collection_dir.joinpath("resource")
+    resource_list = resource_dir.iterdir()
+    specified_resources = kwargs.get("params", {}).get("specified_resources", [])
+    if specified_resources:
+        resource_list = list(
+            filter(lambda x: x.name in specified_resources, resource_list)
+        )
+        if len(resource_list) < len(specified_resources):
+            missing_resources = set(specified_resources).difference(
+                set(resource.name for resource in resource_list)
+            )
+            raise ResourceNotFound(
+                f"Could not find following specified resources: {missing_resources}"
+            )
+    return resource_list
+
+
 def _upload_directory_to_s3(directory: Path, destination: str):
     files = directory.iterdir()
     _upload_files_to_s3(files, destination)
@@ -130,6 +150,10 @@ def callable_clone_task(**kwargs):
 
 
 def callable_collect_task(**kwargs):
+    if kwargs.get("params", {}).get("specified_resources", []):
+        raise AirflowSkipException(
+            "Doing nothing as params['specified_resources'] is set"
+        )
     collection_repository_path = _get_collection_repository_path(kwargs)
     api = _get_api_instance(kwargs)
 
@@ -164,6 +188,10 @@ def callable_download_s3_resources_task(**kwargs):
 
 
 def callable_collection_task(**kwargs):
+    if kwargs.get("params", {}).get("specified_resources", []):
+        raise AirflowSkipException(
+            "Doing nothing as params['specified_resources'] is set"
+        )
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
     collection_dir = collection_repository_path.joinpath("collection")
@@ -174,6 +202,10 @@ def callable_collection_task(**kwargs):
 
 
 def callable_commit_task(**kwargs):
+    if kwargs.get("params", {}).get("specified_resources", []):
+        raise AirflowSkipException(
+            "Doing nothing as params['specified_resources'] is set"
+        )
     paths_to_commit = kwargs["paths_to_commit"]
     environment = _get_environment()
     collection_repository_path = _get_collection_repository_path(kwargs)
@@ -209,8 +241,7 @@ def callable_dataset_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = collection_repository_path.joinpath("collection")
-    resource_dir = collection_dir.joinpath("resource")
-    resource_list = resource_dir.iterdir()
+    resource_list = _get_resource_list(kwargs)
     organisation_csv_path = _get_organisation_csv(kwargs)
     issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
     issue_dir.mkdir(parents=True)
@@ -256,8 +287,7 @@ def callable_build_dataset_task(**kwargs):
     pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
-    collection_dir = collection_repository_path.joinpath("collection")
-    resource_list = collection_dir.joinpath("resource").iterdir()
+    resource_list = _get_resource_list(kwargs)
     potential_input_paths = [
         collection_repository_path.joinpath("transformed")
         .joinpath(pipeline_name)
@@ -352,7 +382,7 @@ for pipeline_name in get_all_pipeline_names():
         pipeline_name,
         start_date=datetime.now(),
         timetable=CronDataIntervalTimetable(
-            Variable.get("pipeline_run_cron_string"), timezone=timezone("Europe/London")
+            _get_dag_cronstring(), timezone=timezone("Europe/London")
         ),
         render_template_as_native_obj=True,
         params={
@@ -363,6 +393,14 @@ for pipeline_name in get_all_pipeline_names():
                     "Note this is for debugging and so will not push any artifacts to git or S3"
                 ),
                 default="HEAD",
+            ),
+            "resource_hashes": Param(
+                type="array",
+                help_text=(
+                    "List of resource hashes to run pipeline against. "
+                    "If specified, the collector will not be run"
+                ),
+                default=[],
             ),
         },
     ) as InstantiatedDag:
