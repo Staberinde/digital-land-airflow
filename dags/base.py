@@ -8,7 +8,7 @@ from shutil import rmtree
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
-from airflow.models import Variable
+from airflow.models import Param, Variable
 import boto3
 from cloudpathlib import CloudPath
 from git import Repo
@@ -100,12 +100,20 @@ def _get_organisation_csv(kwargs):
 
 
 def callable_clone_task(**kwargs):
-    # TODO parameteriize git ref to use, and writer automated tests
+    ref_to_checkout = kwargs.get("params", {}).get("git_ref", "HEAD")
     repo_name = _get_repo_name(kwargs)
     repo_path = _get_run_temporary_directory(kwargs).joinpath(repo_name)
 
     repo_path.mkdir(parents=True)
-    Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)
+    repo = Repo.clone_from(
+        f"https://github.com/digital-land/{repo_name}", to_path=repo_path
+    )
+    if ref_to_checkout != "HEAD":
+        logging.info(f"Checking out git ref {ref_to_checkout}")
+        new_branch = repo.create_head("new")
+        new_branch.commit = ref_to_checkout
+        new_branch.checkout()
+
     kwargs["ti"].xcom_push("collection_repository_path", str(repo_path))
 
 
@@ -159,6 +167,10 @@ def callable_commit_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
     repo = Repo(collection_repository_path)
 
+    if kwargs.get("params", {}).get("git_ref", "HEAD") != "HEAD":
+        raise AirflowSkipException(
+            "Doing nothing as params['git_ref'] is set and we won't be able to push unless we're at HEAD"
+        )
     logging.info(f"Staging {paths_to_commit} for commit")
     repo.git.add(*paths_to_commit)
     # Assert every change staged
@@ -281,6 +293,10 @@ def callable_push_s3_task(**kwargs):
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
+    if kwargs.get("params", {}).get("git_ref", "HEAD") != "HEAD":
+        raise AirflowSkipException(
+            "Doing nothing as params['git_ref'] is set and we won't be able to push unless we're at HEAD"
+        )
     collection_repository_path = _get_collection_repository_path(kwargs)
     directories_to_push = kwargs["directories_to_push"]
     files_to_push = kwargs["files_to_push"]
@@ -325,6 +341,16 @@ for pipeline_name in get_all_pipeline_names():
         schedule_interval=timedelta(days=1),
         start_date=datetime.now(),
         render_template_as_native_obj=True,
+        params={
+            "git_ref": Param(
+                type="string",
+                help_text=(
+                    "Commit of collection repository to run pipeline against. "
+                    "Note this is for debugging and so will not push any artifacts to git or S3"
+                ),
+                default="HEAD",
+            ),
+        },
     ) as InstantiatedDag:
 
         clone = PythonOperator(task_id="clone", python_callable=callable_clone_task)
