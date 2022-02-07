@@ -61,6 +61,12 @@ def _get_temporary_directory():
     return Path("/tmp")
 
 
+def _get_run_temporary_directory(kwargs):
+    pipeline_name = _get_pipeline_name(kwargs)
+    run_id = kwargs["run_id"]
+    return _get_temporary_directory().joinpath(f"{pipeline_name}_{run_id}")
+
+
 def _get_s3_client():
     return boto3.client("s3")
 
@@ -82,9 +88,7 @@ def _upload_files_to_s3(files, destination):
 
 
 def _get_organisation_csv(kwargs):
-    pipeline_name = _get_pipeline_name(kwargs)
-    run_id = kwargs["run_id"]
-    directory = _get_temporary_directory().joinpath(f"{pipeline_name}_{run_id}")
+    directory = _get_run_temporary_directory(kwargs)
     directory.mkdir(exist_ok=True)
     path = directory.joinpath("organisation.csv")
     organisation_csv_url = Variable.get("organisation_csv_url")
@@ -97,14 +101,8 @@ def _get_organisation_csv(kwargs):
 
 def callable_clone_task(**kwargs):
     # TODO parameteriize git ref to use, and writer automated tests
-    pipeline_name = _get_pipeline_name(kwargs)
-    run_id = kwargs["run_id"]
     repo_name = _get_repo_name(kwargs)
-    repo_path = (
-        _get_temporary_directory()
-        .joinpath(f"{pipeline_name}_{run_id}")
-        .joinpath(repo_name)
-    )
+    repo_path = _get_run_temporary_directory(kwargs).joinpath(repo_name)
 
     repo_path.mkdir(parents=True)
     Repo.clone_from(f"https://github.com/digital-land/{repo_name}", to_path=repo_path)

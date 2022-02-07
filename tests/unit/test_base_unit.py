@@ -5,13 +5,14 @@ from dags.base import (
     callable_commit_task,
     callable_download_s3_resources_task,
     callable_push_s3_task,
+    _get_organisation_csv,
 )
 
 
 def test_clone(kwargs, mocker, tmp_path):
-    expected_path = tmp_path.joinpath(
-        f"{tmp_path}/listed-building_{kwargs['run_id']}"
-    ).joinpath("listed-building-collection")
+    expected_path = tmp_path.joinpath(f"listed-building_{kwargs['run_id']}").joinpath(
+        "listed-building-collection"
+    )
     mocker.patch("dags.base._get_temporary_directory", return_value=tmp_path)
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     assert not expected_path.exists()
@@ -166,3 +167,26 @@ def test_push_s3_collection(
             if path.name not in ["resource", "collection.csv"]
         ]
     )
+
+
+def test_get_organisation_csv(kwargs, data_dir, mocker, requests_mock, tmp_path):
+    # Setup
+    organisation_csv_fixture = data_dir.joinpath("organisation.csv")
+    fake_organisation_csv_url = "https://iamanorganisationcsvurl"
+    mocker.patch("dags.base._get_run_temporary_directory", return_value=tmp_path)
+    mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
+    requests_mock.get(
+        fake_organisation_csv_url, text=organisation_csv_fixture.open().readline()
+    )
+    expected_path = tmp_path.joinpath("organisation.csv")
+
+    # Call
+    response = _get_organisation_csv(kwargs)
+    # Assert
+
+    assert response == expected_path
+    with expected_path.open() as f:
+        actual_content = f.readline()
+    with organisation_csv_fixture.open() as f:
+        expected_content = f.readline()
+    assert actual_content == expected_content
