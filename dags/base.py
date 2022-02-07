@@ -1,7 +1,7 @@
 from csv import DictReader
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
 
@@ -9,11 +9,13 @@ from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.models import Param, Variable
+from airflow.timetables.interval import CronDataIntervalTimetable
 import boto3
 from cloudpathlib import CloudPath
 from git import Repo
 from humps import pascalize
 import requests
+from pendulum.tz import timezone
 
 from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
@@ -338,8 +340,10 @@ def get_all_pipeline_names():
 for pipeline_name in get_all_pipeline_names():
     with DAG(
         pipeline_name,
-        schedule_interval=timedelta(days=1),
         start_date=datetime.now(),
+        timetable=CronDataIntervalTimetable(
+            Variable.get("pipeline_run_cron_string"), timezone=timezone("Europe/London")
+        ),
         render_template_as_native_obj=True,
         params={
             "git_ref": Param(

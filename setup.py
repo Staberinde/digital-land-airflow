@@ -21,6 +21,7 @@ setup(
         "digital-land@git+https://github.com/digital-land/digital-land-python",
         "specification@git+https://github.com/digital-land/specification",
         # Utils
+        "pendulum~=2.1.2",
         "pyhumps~=3.5.0",
     ],
     setup_requires=["pytest-runner"],
