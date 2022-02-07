@@ -21,8 +21,18 @@ from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
 
 
+class ResourceNotFound(Exception):
+    """Raised if explicitly specified resource cannot be found in resources/"""
+
+    pass
+
+
 def _get_environment():
     return os.environ.get("ENVIRONMENT", "development")
+
+
+def _get_dag_cronstring():
+    return os.environ.get("PIPELINE_RUN_CRON_STRING")
 
 
 def _get_api_instance(kwargs):

@@ -35,6 +35,7 @@ setup(
             "twine",
             "requests-mock",
             "pytest-mock",
+            "pytest-dotenv",
             "apache-airflow~=2.2.0",
         ]
     },
