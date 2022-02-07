@@ -336,7 +336,9 @@ for pipeline_name in get_all_pipeline_names():
             task_id="collect", python_callable=callable_collect_task
         )
         collection = PythonOperator(
-            task_id="collection", python_callable=callable_collection_task
+            task_id="collection",
+            python_callable=callable_collection_task,
+            trigger_rule="none_failed",
         )
         commit_collect = PythonOperator(
             task_id="commit_collect",
@@ -376,7 +378,9 @@ for pipeline_name in get_all_pipeline_names():
             },
         )
         dataset = PythonOperator(
-            task_id="dataset", python_callable=callable_dataset_task
+            task_id="dataset",
+            python_callable=callable_dataset_task,
+            trigger_rule="none_failed",
         )
         build_dataset = PythonOperator(
             task_id="build_dataset", python_callable=callable_build_dataset_task
@@ -401,18 +405,16 @@ for pipeline_name in get_all_pipeline_names():
         clone >> download_s3_resources
         download_s3_resources >> collect
         collect >> commit_collect
-        collect >> collection
+        commit_collect >> collection
         collection >> commit_collection
-        commit_collect >> commit_collection
         collection >> push_s3_collection
-        collection >> dataset
+        commit_collection >> dataset
+        push_s3_collection >> dataset
         dataset >> build_dataset
         build_dataset >> commit_harmonised
         build_dataset >> push_s3_dataset
         commit_harmonised >> working_directory_cleanup
         push_s3_dataset >> working_directory_cleanup
-        push_s3_collection >> working_directory_cleanup
-        commit_collection >> working_directory_cleanup
 
         # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{kebab_to_pascal_case(pipeline_name)}Dag"] = InstantiatedDag
