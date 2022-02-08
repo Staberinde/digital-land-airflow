@@ -11,6 +11,7 @@
   * [Note on Terminology](#note-on-terminology)
 * [Prerequisites](#prerequisites)
 * [Setting Digital Land Airflow up locally](#setting-digital-land-airflow-up-locally)
+  * [Executing automated tests](#executing-automated-tests)
   * [Debugging pipelines](#debugging-pipelines)
 * [Using this repository and AWS authentication matters](#using-this-repository-and-aws-authentication-matters)
 
@@ -47,6 +48,24 @@ aws-vault exec dl-dev -- ./airflow.sh dags trigger listed-building
 ```
 
 Note that this won't run the pipeline synchronously; you'll need to have airflow running via `aws-vault exec dl-dev -- docker-compose up` in order for the pipeline to execute.
+
+### Executing automated tests
+
+All automated tests should be able to be run on the host machine (i.e. they don't need to be run within the airflow docker containers)
+
+To run the tests, run:
+
+```
+make init && make test
+```
+
+or alternatively
+
+```
+make init && pytest
+```
+
+from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
 
 ### Debugging pipelines
 

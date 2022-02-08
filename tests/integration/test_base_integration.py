@@ -90,18 +90,29 @@ def test_dataset(
         test_expected_results_dir.joinpath("transformed").iterdir(),
         shallow=False,
     )
+    assert len(list(transformed_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("transformed").glob("**/*"))
+    ), list(transformed_dir.glob("**/*"))
+
     cmpfiles(
         harmonised_dir,
         test_expected_results_dir.joinpath("harmonised"),
         test_expected_results_dir.joinpath("harmonised").iterdir(),
         shallow=False,
     )
+    assert len(list(harmonised_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("harmonised").glob("**/*"))
+    ), list(harmonised_dir.glob("**/*"))
+
     cmpfiles(
         issue_dir,
         test_expected_results_dir.joinpath("issue"),
         test_expected_results_dir.joinpath("issue").iterdir(),
         shallow=False,
     )
+    assert len(list(issue_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("issue").glob("**/*"))
+    ), list(issue_dir.glob("**/*"))
 
 
 def test_dataset_specified_resources(
@@ -142,6 +153,10 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
+    assert len(list(transformed_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("transformed").glob("**/*"))
+    ), list(transformed_dir.glob("**/*"))
+
     cmpfiles(
         harmonised_dir,
         test_expected_results_dir.joinpath("harmonised"),
@@ -151,6 +166,10 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
+    assert len(list(harmonised_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("harmonised").glob("**/*"))
+    ), list(harmonised_dir.glob("**/*"))
+
     cmpfiles(
         issue_dir,
         test_expected_results_dir.joinpath("issue"),
@@ -161,6 +180,9 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
+    assert len(list(issue_dir.glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("issue").glob("**/*"))
+    ), list(issue_dir.glob("**/*"))
 
 
 def test_build_dataset(
@@ -179,6 +201,9 @@ def test_build_dataset(
         test_expected_results_dir.joinpath("dataset"),
         test_expected_results_dir.joinpath("dataset").iterdir(),
         shallow=False,
+    )
+    assert len(list(tmp_path.joinpath("dataset").glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("dataset").glob("**/*"))
     )
 
 
@@ -205,4 +230,7 @@ def test_build_dataset_specified_resources(
             for resource in kwargs_specified_resources["params"]["resource_hashes"]
         ],
         shallow=False,
+    )
+    assert len(list(tmp_path.joinpath("dataset").glob("**/*"))) == len(
+        list(test_expected_results_dir.joinpath("dataset").glob("**/*"))
     )
