@@ -1,6 +1,6 @@
 from csv import DictReader
 from datetime import date
-from filecmp import cmpfiles
+from filecmp import dircmp
 from json import load
 
 from dags.base import (
@@ -13,13 +13,17 @@ from dags.base import (
 TODAY = date.today()
 
 
-def _assert_tree_identical(dir1, dir2):
-    set1 = set(p.relative_to(dir1) for p in dir1.glob("**/*"))
-    set2 = set(p.relative_to(dir2) for p in dir2.glob("**/*"))
-    set1_missing = set2.difference(set1)
-    assert not set1_missing, f"Following files missing from {dir1}: {set1_missing}"
-    set2_missing = set1.difference(set2)
-    assert not set2_missing, f"Following files missing from {dir2}: {set2_missing}"
+def _assert_tree_identical(dir1, dir2, only=None):
+    if only:
+        ignore = [
+            filepath.name for filepath in dir2.glob("**/*") if filepath.name not in only
+        ]
+    else:
+        ignore = None
+    dircmp_instance = dircmp(dir1, dir2, ignore=ignore)
+    assert not dircmp_instance.left_only
+    assert not dircmp_instance.right_only
+    assert not dircmp_instance.diff_files
 
 
 def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_path):
@@ -93,32 +97,14 @@ def test_dataset(
         callable_dataset_task(**kwargs)
 
     # Assert
-    cmpfiles(
-        transformed_dir,
-        test_expected_results_dir.joinpath("transformed"),
-        test_expected_results_dir.joinpath("transformed").iterdir(),
-        shallow=False,
-    )
     _assert_tree_identical(
         transformed_dir, test_expected_results_dir.joinpath("transformed")
     )
 
-    cmpfiles(
-        harmonised_dir,
-        test_expected_results_dir.joinpath("harmonised"),
-        test_expected_results_dir.joinpath("harmonised").iterdir(),
-        shallow=False,
-    )
     _assert_tree_identical(
         harmonised_dir, test_expected_results_dir.joinpath("harmonised")
     )
 
-    cmpfiles(
-        issue_dir,
-        test_expected_results_dir.joinpath("issue"),
-        test_expected_results_dir.joinpath("issue").iterdir(),
-        shallow=False,
-    )
     _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
 
 
@@ -151,47 +137,33 @@ def test_dataset_specified_resources(
         callable_dataset_task(**kwargs_specified_resources)
 
     # Assert
-    cmpfiles(
+    _assert_tree_identical(
         transformed_dir,
         test_expected_results_dir.joinpath("transformed"),
-        [
-            test_expected_results_dir.joinpath("transformed").joinpath(resource)
-            for resource in kwargs_specified_resources["params"]["resource_hashes"]
-        ],
-        shallow=False,
-    )
-    _assert_tree_identical(
-        transformed_dir, test_expected_results_dir.joinpath("transformed")
+        only=kwargs_specified_resources["params"]["resource_hashes"],
     )
 
-    cmpfiles(
+    _assert_tree_identical(
         harmonised_dir,
         test_expected_results_dir.joinpath("harmonised"),
-        [
-            test_expected_results_dir.joinpath("harmonised").joinpath(resource)
-            for resource in kwargs_specified_resources["params"]["resource_hashes"]
-        ],
-        shallow=False,
-    )
-    _assert_tree_identical(
-        harmonised_dir, test_expected_results_dir.joinpath("harmonised")
+        only=kwargs_specified_resources["params"]["resource_hashes"],
     )
 
-    cmpfiles(
+    _assert_tree_identical(
         issue_dir,
         test_expected_results_dir.joinpath("issue"),
-        [
-            test_expected_results_dir.joinpath("issue").joinpath(resource)
-            for resource in kwargs_specified_resources["params"]["resource_hashes"]
-            if test_expected_results_dir.joinpath("issue").joinpath(resource).exists()
-        ],
-        shallow=False,
+        kwargs_specified_resources["params"]["resource_hashes"],
     )
-    _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
 
 
 def test_build_dataset(
-    collection_resources_dir, expected_results_dir, transformed_dir, kwargs, tmp_path
+    collection_metadata_dir,
+    collection_resources_dir,
+    collection_resources_file,
+    expected_results_dir,
+    transformed_dir,
+    kwargs,
+    tmp_path,
 ):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
@@ -201,19 +173,15 @@ def test_build_dataset(
     callable_build_dataset_task(**kwargs)
 
     # Assert
-    cmpfiles(
-        tmp_path.joinpath("dataset"),
-        test_expected_results_dir.joinpath("dataset"),
-        test_expected_results_dir.joinpath("dataset").iterdir(),
-        shallow=False,
-    )
     _assert_tree_identical(
         tmp_path.joinpath("dataset"), test_expected_results_dir.joinpath("dataset")
     )
 
 
 def test_build_dataset_specified_resources(
+    collection_metadata_dir,
     collection_resources_dir,
+    collection_resources_file,
     expected_results_dir,
     transformed_dir,
     kwargs_specified_resources,
@@ -227,15 +195,8 @@ def test_build_dataset_specified_resources(
     callable_build_dataset_task(**kwargs_specified_resources)
 
     # Assert
-    cmpfiles(
+    _assert_tree_identical(
         tmp_path.joinpath("dataset"),
         test_expected_results_dir.joinpath("dataset"),
-        [
-            test_expected_results_dir.joinpath("dataset").joinpath(resource)
-            for resource in kwargs_specified_resources["params"]["resource_hashes"]
-        ],
-        shallow=False,
-    )
-    _assert_tree_identical(
-        tmp_path.joinpath("dataset"), test_expected_results_dir.joinpath("dataset")
+        only=kwargs_specified_resources["params"]["resource_hashes"],
     )
