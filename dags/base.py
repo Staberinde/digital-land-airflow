@@ -35,8 +35,9 @@ def _get_dag_cronstring():
     return os.environ.get("PIPELINE_RUN_CRON_STRING")
 
 
-def _get_api_instance(kwargs):
-    pipeline_name = kwargs["dag"]._dag_id
+def _get_api_instance(kwargs, pipeline_name=None):
+    if not pipeline_name:
+        pipeline_name = kwargs["dag"]._dag_id
 
     collection_repository_path = _get_collection_repository_path(kwargs)
     pipeline_dir = collection_repository_path.joinpath("pipeline")
@@ -237,22 +238,34 @@ def callable_commit_task(**kwargs):
 
 def callable_dataset_task(**kwargs):
     api = _get_api_instance(kwargs)
-    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     collection_dir = collection_repository_path.joinpath("collection")
     resource_list = _get_resource_list(kwargs)
     organisation_csv_path = _get_organisation_csv(kwargs)
-    issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
-    issue_dir.mkdir(exist_ok=True, parents=True)
-    collection_repository_path.joinpath("transformed").joinpath(pipeline_name).mkdir(
-        exist_ok=True, parents=True
-    )
-    collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
-        exist_ok=True, parents=True
-    )
+
+    pipeline_resource_mapping = api.pipeline_resource_mapping_for_collection(collection_dir)
+
+    resource_pipeline_mapping = {}
+    for k, value_set in pipeline_resource_mapping.items():
+        for v in value_set:
+            resource_pipeline_mapping.setdefault(v, []).append(k)
 
     for resource_file in resource_list:
+
+        pipeline_names = resource_pipeline_mapping[resource_file.name]
+        assert len(pipeline_names) == 1
+        pipeline_name = pipeline_names[0]
+
+        api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
+        issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
+        issue_dir.mkdir(exist_ok=True, parents=True)
+        collection_repository_path.joinpath("transformed").joinpath(pipeline_name).mkdir(
+            exist_ok=True, parents=True
+        )
+        collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
+            exist_ok=True, parents=True
+        )
         # Most digital_land.API() commands expect strings not pathlib.Path
         pipeline_cmd_args = {
             "input_path": str(resource_file),
