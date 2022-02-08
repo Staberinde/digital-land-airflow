@@ -244,7 +244,7 @@ def callable_dataset_task(**kwargs):
     resource_list = _get_resource_list(kwargs)
     organisation_csv_path = _get_organisation_csv(kwargs)
     issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
-    issue_dir.mkdir(parents=True)
+    issue_dir.mkdir(exist_ok=True, parents=True)
     collection_repository_path.joinpath("transformed").joinpath(pipeline_name).mkdir(
         exist_ok=True, parents=True
     )

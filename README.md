@@ -8,8 +8,10 @@
 <!-- vim-markdown-toc Marked -->
 
 * [Overview](#overview)
+  * [Note on Terminology](#note-on-terminology)
 * [Prerequisites](#prerequisites)
 * [Setting Digital Land Airflow up locally](#setting-digital-land-airflow-up-locally)
+  * [Debugging pipelines](#debugging-pipelines)
 * [Using this repository and AWS authentication matters](#using-this-repository-and-aws-authentication-matters)
 
 <!-- vim-markdown-toc -->
@@ -17,6 +19,10 @@
 ## Overview
 
 This repository contains the [Apache Airflow](https://airflow.apache.org/) [DAG](https://airflow.apache.org/docs/apache-airflow/stable/concepts/dags.html)'s used in running the Digital Land pipeline (ETL) infrastructure.
+
+### Note on Terminology
+
+The term `pipeline` is used in this document to encompass both the updating and processing of a collection, which different from the use in `digital-land-python` where `pipeline` tends to refer to just the processing of a collection
 
 ## Prerequisites
 
@@ -41,6 +47,32 @@ aws-vault exec dl-dev -- ./airflow.sh dags trigger listed-building
 ```
 
 Note that this won't run the pipeline synchronously; you'll need to have airflow running via `aws-vault exec dl-dev -- docker-compose up` in order for the pipeline to execute.
+
+### Debugging pipelines
+
+If you need to inspect the working directory (i.e. the collection repository checked out from git, with the resources pulled from S3 and any changes arising from the execution) of a failed pipeline, run:
+
+```
+docker-compose exec airflow-worker bash
+```
+
+from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
+
+You should then be able to find the working directory under the path `/tmp/{pipeline name}_manual__{ISO 8601 timestamp of execution start}/{pipeline name}-collection/`
+
+Alternatively, if you want to copy the working directory to your host system, run:
+
+```
+docker cp $(docker-compose ps -q airflow-worker):/tmp/{pipeline name}_manual__{ISO 8601 timestamp of execution start}/{pipeline name}-collection ../airflow-collection-working-directory
+```
+
+from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
+
+Or to avoid having to look for the execution timestamp you could just run something like
+
+```
+docker cp $(docker-compose ps -q airflow-worker):/tmp ./airflow-execution-tmp
+```
 
 ## Using this repository and AWS authentication matters
 
