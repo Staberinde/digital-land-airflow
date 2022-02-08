@@ -13,6 +13,15 @@ from dags.base import (
 TODAY = date.today()
 
 
+def _assert_tree_identical(dir1, dir2):
+    set1 = set(p.relative_to(dir1) for p in dir1.glob("**/*"))
+    set2 = set(p.relative_to(dir2) for p in dir2.glob("**/*"))
+    set1_missing = set2.difference(set1)
+    assert not set1_missing, f"Following files missing from {dir1}: {set1_missing}"
+    set2_missing = set1.difference(set2)
+    assert not set2_missing, f"Following files missing from {dir2}: {set2_missing}"
+
+
 def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_path):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
@@ -90,9 +99,9 @@ def test_dataset(
         test_expected_results_dir.joinpath("transformed").iterdir(),
         shallow=False,
     )
-    assert len(list(transformed_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("transformed").glob("**/*"))
-    ), list(transformed_dir.glob("**/*"))
+    _assert_tree_identical(
+        transformed_dir, test_expected_results_dir.joinpath("transformed")
+    )
 
     cmpfiles(
         harmonised_dir,
@@ -100,9 +109,9 @@ def test_dataset(
         test_expected_results_dir.joinpath("harmonised").iterdir(),
         shallow=False,
     )
-    assert len(list(harmonised_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("harmonised").glob("**/*"))
-    ), list(harmonised_dir.glob("**/*"))
+    _assert_tree_identical(
+        harmonised_dir, test_expected_results_dir.joinpath("harmonised")
+    )
 
     cmpfiles(
         issue_dir,
@@ -110,9 +119,7 @@ def test_dataset(
         test_expected_results_dir.joinpath("issue").iterdir(),
         shallow=False,
     )
-    assert len(list(issue_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("issue").glob("**/*"))
-    ), list(issue_dir.glob("**/*"))
+    _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
 
 
 def test_dataset_specified_resources(
@@ -153,9 +160,9 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
-    assert len(list(transformed_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("transformed").glob("**/*"))
-    ), list(transformed_dir.glob("**/*"))
+    _assert_tree_identical(
+        transformed_dir, test_expected_results_dir.joinpath("transformed")
+    )
 
     cmpfiles(
         harmonised_dir,
@@ -166,9 +173,9 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
-    assert len(list(harmonised_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("harmonised").glob("**/*"))
-    ), list(harmonised_dir.glob("**/*"))
+    _assert_tree_identical(
+        harmonised_dir, test_expected_results_dir.joinpath("harmonised")
+    )
 
     cmpfiles(
         issue_dir,
@@ -180,9 +187,7 @@ def test_dataset_specified_resources(
         ],
         shallow=False,
     )
-    assert len(list(issue_dir.glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("issue").glob("**/*"))
-    ), list(issue_dir.glob("**/*"))
+    _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
 
 
 def test_build_dataset(
@@ -202,8 +207,8 @@ def test_build_dataset(
         test_expected_results_dir.joinpath("dataset").iterdir(),
         shallow=False,
     )
-    assert len(list(tmp_path.joinpath("dataset").glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("dataset").glob("**/*"))
+    _assert_tree_identical(
+        tmp_path.joinpath("dataset"), test_expected_results_dir.joinpath("dataset")
     )
 
 
@@ -231,6 +236,6 @@ def test_build_dataset_specified_resources(
         ],
         shallow=False,
     )
-    assert len(list(tmp_path.joinpath("dataset").glob("**/*"))) == len(
-        list(test_expected_results_dir.joinpath("dataset").glob("**/*"))
+    _assert_tree_identical(
+        tmp_path.joinpath("dataset"), test_expected_results_dir.joinpath("dataset")
     )
