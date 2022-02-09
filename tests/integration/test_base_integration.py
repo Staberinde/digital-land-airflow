@@ -1,6 +1,6 @@
 from csv import DictReader
 from datetime import date
-from difflib import context_diff
+from difflib import diff_bytes, context_diff
 from filecmp import dircmp
 from json import load
 
@@ -14,14 +14,53 @@ from dags.base import (
 TODAY = date.today()
 
 
+def _split_string_on_unknown_line_ending(string):
+    if "\r\n" in string:
+        return string.split("\r\n")
+    else:
+        return string.split("\n")
+
+
+def _is_text_file_output(content):
+    try:
+        content.decode("utf-8")
+    except Exception:
+        return False
+    else:
+        return True
+
+
 def _diff_files(dir1, dir2, filenames):
     diffs = []
     for filename in filenames:
-        with dir1.joinpath(filename).open() as f1, dir2.joinpath(filename).open() as f2:
+        with dir1.joinpath(filename).open(mode="rb") as f1, dir2.joinpath(
+            filename
+        ).open(mode="rb") as f2:
+
+            f1_content = f1.readline()
+            f2_content = f2.readline()
+        if _is_text_file_output(f1_content) and _is_text_file_output(f1_content):
+
+            f1_content_list = _split_string_on_unknown_line_ending(
+                f1_content.decode("utf-8")
+            )
+            f2_content_list = _split_string_on_unknown_line_ending(
+                f2_content.decode("utf-8")
+            )
             diffs.extend(
                 context_diff(
-                    f1.readlines(),
-                    f2.readlines(),
+                    f1_content_list,
+                    f2_content_list,
+                    fromfile=dir1.joinpath(filename),
+                    tofile=dir2.joinpath(filename),
+                )
+            )
+        else:
+            diffs.extend(
+                diff_bytes(
+                    context_diff,
+                    bytes(f1_content),
+                    bytes(f2_content),
                     fromfile=dir1.joinpath(filename),
                     tofile=dir2.joinpath(filename),
                 )
