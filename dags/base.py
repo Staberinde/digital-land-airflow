@@ -59,12 +59,12 @@ def _get_collection_repository_path(kwargs):
     return Path(kwargs["ti"].xcom_pull(key="collection_repository_path"))
 
 
-def _get_pipeline_name(kwargs):
+def _get_collection_name(kwargs):
     return kwargs["dag"]._dag_id
 
 
 def _get_repo_name(kwargs):
-    return f"{_get_pipeline_name(kwargs)}-collection"
+    return f"{_get_collection_name(kwargs)}-collection"
 
 
 _get_resources_name = _get_repo_name
@@ -75,9 +75,9 @@ def _get_temporary_directory():
 
 
 def _get_run_temporary_directory(kwargs):
-    pipeline_name = _get_pipeline_name(kwargs)
+    collection_name = _get_collection_name(kwargs)
     run_id = kwargs["run_id"]
-    return _get_temporary_directory().joinpath(f"{pipeline_name}_{run_id}")
+    return _get_temporary_directory().joinpath(f"{collection_name}_{run_id}")
 
 
 def _get_s3_client():
@@ -306,8 +306,6 @@ def callable_dataset_task(**kwargs):
 
 
 def callable_build_dataset_task(**kwargs):
-    api = _get_api_instance(kwargs)
-    pipeline_name = _get_pipeline_name(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
     dataset_path = collection_repository_path.joinpath("dataset")
@@ -316,6 +314,7 @@ def callable_build_dataset_task(**kwargs):
     pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
     for pipeline_name, resource_hash_list in pipeline_resource_mapping.items():
+        api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
         potential_input_paths = [
             collection_repository_path.joinpath("transformed")
             .joinpath(pipeline_name)

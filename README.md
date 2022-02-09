@@ -23,7 +23,9 @@ This repository contains the [Apache Airflow](https://airflow.apache.org/) [DAG]
 
 ### Note on Terminology
 
-The term `pipeline` is used in this document to encompass both the updating and processing of a collection, which different from the use in `digital-land-python` where `pipeline` tends to refer to just the processing of a collection
+The term `pipeline` is used in this document to encompass both the updating and processing of a collection, which different from the use in `digital-land-python` where `pipeline` tends to refer to just the processing of a collection.
+
+However, in the digital-land-airflow code you'll also see references to `pipeline_name` as a subset of the pipeline. This is a piece of terminology leftover from the previous implementation, where one collection-specific runner would run multiple pipelines. We carry over this implementation as a means of simplifying the transition, but appreciate that it may be confusing for new users to have two differently-scoped notions of `pipeline`, one of which is at odds with canonical notion of `pipeline` in Airflow. This terminology collision is something we would look to remediate in the future across the digital-land service.
 
 ## Prerequisites
 
@@ -65,7 +67,7 @@ or alternatively
 make init && pytest
 ```
 
-from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
+from the `digital-land-airflow` root directory (i.e. the same directory as this README)
 
 ### Debugging pipelines
 
@@ -75,7 +77,7 @@ If you need to inspect the working directory (i.e. the collection repository che
 docker-compose exec airflow-worker bash
 ```
 
-from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
+from the `digital-land-airflow` root directory (i.e. the same directory as this README)
 
 You should then be able to find the working directory under the path `/tmp/{pipeline name}_manual__{ISO 8601 timestamp of execution start}/{pipeline name}-collection/`
 
@@ -85,7 +87,7 @@ Alternatively, if you want to copy the working directory to your host system, ru
 docker cp $(docker-compose ps -q airflow-worker):/tmp/{pipeline name}_manual__{ISO 8601 timestamp of execution start}/{pipeline name}-collection ../airflow-collection-working-directory
 ```
 
-from the `digital-land-airflow` root directory (i.e. the same directory as this README.md)
+from the `digital-land-airflow` root directory (i.e. the same directory as this README)
 
 Or to avoid having to look for the execution timestamp you could just run something like
 
