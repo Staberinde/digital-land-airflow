@@ -387,7 +387,19 @@ def callable_push_s3_task(**kwargs):
 
 def callable_working_directory_cleanup_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
-    rmtree(collection_repository_path)
+    if kwargs.get("params", {}).get(
+        "delete_working_directory_on_pipeline_success", False
+    ):
+        logging.info(f"Removing directory structure {collection_repository_path}")
+        rmtree(collection_repository_path)
+        logging.info(
+            f"Directory structure {collection_repository_path} removed successfully"
+        )
+    else:
+        logging.info(
+            f"Not removing directory structure {collection_repository_path} as "
+            f"delete_working_directory_on_pipeline_success={kwargs['params']['delete_working_directory_on_pipeline_success']}"
+        )
 
 
 def kebab_to_pascal_case(kebab_case_str):
@@ -427,6 +439,13 @@ for pipeline_name in get_all_pipeline_names():
                     "If specified, the collector will not be run"
                 ),
                 default=[],
+            ),
+            "delete_working_directory_on_pipeline_success": Param(
+                type="boolean",
+                help_text=(
+                    "Denotes whether the working directory of the collection is deleted after successful DAG execution"
+                ),
+                default=True,
             ),
         },
     ) as InstantiatedDag:
@@ -504,6 +523,7 @@ for pipeline_name in get_all_pipeline_names():
         working_directory_cleanup = PythonOperator(
             task_id="working_directory_cleanup",
             python_callable=callable_working_directory_cleanup_task,
+            trigger_rule="none_failed",
         )
 
         clone >> download_s3_resources
