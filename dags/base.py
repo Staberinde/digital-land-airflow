@@ -292,9 +292,10 @@ def callable_dataset_task(**kwargs):
                 f"digital-land --pipeline-name {pipeline_name} pipeline "
                 f"--issue-dir {pipeline_cmd_args['issue_dir']} "
                 f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
-                f"--null-path {pipeline_cmd_args['null_path']} "
                 f"--organisation-path {pipeline_cmd_args['organisation_path']} "
             )
+            if pipeline_cmd_args["null_path"]:
+                log_string += f" --null-path {pipeline_cmd_args['null_path']}"
             if pipeline_cmd_args["save_harmonised"]:
                 log_string += " --save-harmonised"
 
