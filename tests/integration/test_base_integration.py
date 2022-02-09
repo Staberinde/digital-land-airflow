@@ -1,5 +1,6 @@
 from csv import DictReader
 from datetime import date
+from difflib import context_diff
 from filecmp import dircmp
 from json import load
 
@@ -13,6 +14,21 @@ from dags.base import (
 TODAY = date.today()
 
 
+def _diff_files(dir1, dir2, filenames):
+    diffs = []
+    for filename in filenames:
+        with dir1.joinpath(filename).open() as f1, dir2.joinpath(filename).open() as f2:
+            diffs.extend(
+                context_diff(
+                    f1.readlines(),
+                    f2.readlines(),
+                    fromfile=dir1.joinpath(filename),
+                    tofile=dir2.joinpath(filename),
+                )
+            )
+    return diffs
+
+
 def _assert_tree_identical(dir1, dir2, only=None):
     if only:
         ignore = [
@@ -23,7 +39,9 @@ def _assert_tree_identical(dir1, dir2, only=None):
     dircmp_instance = dircmp(dir1, dir2, ignore=ignore)
     assert not dircmp_instance.left_only
     assert not dircmp_instance.right_only
-    assert not dircmp_instance.diff_files
+    assert not dircmp_instance.diff_files, _diff_files(
+        dir1, dir2, dircmp_instance.diff_files
+    )
 
 
 def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_path):

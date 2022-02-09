@@ -2,4 +2,7 @@
 .envrc
 pyrightconfig.json
 
-logs/
+.eggs/
+.coverage/
+.build/
+digital_land_airflow.egg-info/
