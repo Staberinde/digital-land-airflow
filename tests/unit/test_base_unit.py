@@ -76,8 +76,12 @@ def test_commit(kwargs, mocker, tmp_path):
 def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker):
     #  Setup
     kwargs["directories_to_push"] = [
-        ("transformed/listed-building", "listed-building/transformed"),
-        ("issue/listed-building", "listed-building/issue"),
+        ("transformed/listed-building-grade", "listed-building-grade/transformed"),
+        ("transformed/listed-building-outline", "listed-building-outline/transformed"),
+        ("transformed/locally-listed-building", "locally-listed-building/transformed"),
+        ("issue/listed-building-grade", "listed-building-grade/issue"),
+        ("issue/listed-building-outline", "listed-building-outline/issue"),
+        ("issue/locally-listed-building", "locally-listed-building/issue"),
         ("dataset", "listed-building/dataset"),
     ]
     kwargs["files_to_push"] = []
