@@ -3,6 +3,7 @@ from datetime import date
 from difflib import diff_bytes, context_diff
 from filecmp import dircmp
 from json import load
+from subprocess import run, CalledProcessError
 
 from dags.base import (
     callable_build_dataset_task,
@@ -33,38 +34,60 @@ def _is_text_file_output(content):
 def _diff_files(dir1, dir2, filenames):
     diffs = []
     for filename in filenames:
-        with dir1.joinpath(filename).open(mode="rb") as f1, dir2.joinpath(
-            filename
-        ).open(mode="rb") as f2:
-
-            f1_content = f1.readline()
-            f2_content = f2.readline()
-        if _is_text_file_output(f1_content) and _is_text_file_output(f1_content):
-
-            f1_content_list = _split_string_on_unknown_line_ending(
-                f1_content.decode("utf-8")
+        if ".sqlite" in filename:
+            run(
+                ["command", "-v", "sqldiff"],
+                check=True,
+                shell=True,
             )
-            f2_content_list = _split_string_on_unknown_line_ending(
-                f2_content.decode("utf-8")
+            completed_process = run(
+                f"sqldiff {dir1.joinpath(filename)} {dir2.joinpath(filename)}",
+                capture_output=True,
+                shell=True,
             )
-            diffs.extend(
-                context_diff(
-                    f1_content_list,
-                    f2_content_list,
-                    fromfile=dir1.joinpath(filename),
-                    tofile=dir2.joinpath(filename),
-                )
-            )
+            if completed_process.stdout:
+                diffs.append(completed_process.stdout)
+            if completed_process.stderr:
+                diffs.append(completed_process.stderr)
+            try:
+                completed_process.check_returncode()
+            except CalledProcessError as e:
+                print(f"sqldiff {filename} stdout: {completed_process.stdout}")
+                print(f"sqldiff {filename} stderr: {completed_process.stderr}")
+                raise e
         else:
-            diffs.extend(
-                diff_bytes(
-                    context_diff,
-                    bytes(f1_content),
-                    bytes(f2_content),
-                    fromfile=dir1.joinpath(filename),
-                    tofile=dir2.joinpath(filename),
+            with dir1.joinpath(filename).open(mode="rb") as f1, dir2.joinpath(
+                filename
+            ).open(mode="rb") as f2:
+
+                f1_content = f1.readline()
+                f2_content = f2.readline()
+            if _is_text_file_output(f1_content) and _is_text_file_output(f1_content):
+
+                f1_content_list = _split_string_on_unknown_line_ending(
+                    f1_content.decode("utf-8")
                 )
-            )
+                f2_content_list = _split_string_on_unknown_line_ending(
+                    f2_content.decode("utf-8")
+                )
+                diffs.extend(
+                    context_diff(
+                        f1_content_list,
+                        f2_content_list,
+                        fromfile=str(dir1.joinpath(filename)),
+                        tofile=str(dir2.joinpath(filename)),
+                    )
+                )
+            else:
+                diffs.extend(
+                    diff_bytes(
+                        context_diff,
+                        bytes(f1_content),
+                        bytes(f2_content),
+                        fromfile=str(dir1.joinpath(filename)),
+                        tofile=str(dir2.joinpath(filename)),
+                    )
+                )
     return diffs
 
 
