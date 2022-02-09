@@ -266,14 +266,16 @@ def callable_dataset_task(**kwargs):
         for pipeline_name in pipeline_names:
 
             api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
-            issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
+            issue_dir = collection_repository_path.joinpath("issue").joinpath(
+                pipeline_name
+            )
             issue_dir.mkdir(exist_ok=True, parents=True)
             collection_repository_path.joinpath("transformed").joinpath(
                 pipeline_name
             ).mkdir(exist_ok=True, parents=True)
-            collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
-                exist_ok=True, parents=True
-            )
+            collection_repository_path.joinpath("harmonised").joinpath(
+                pipeline_name
+            ).mkdir(exist_ok=True, parents=True)
             # Most digital_land.API() commands expect strings not pathlib.Path
             pipeline_cmd_args = {
                 "input_path": str(resource_dir.joinpath(resource_hash)),
