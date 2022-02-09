@@ -32,3 +32,8 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         verbose: true
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: pytest tmp_path
+        path: /tmp/pytest-of-runner/pytest-1/
