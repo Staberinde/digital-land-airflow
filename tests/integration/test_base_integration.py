@@ -31,63 +31,71 @@ def _is_text_file_output(content):
         return True
 
 
+def _diff_sql_files(dir1_files, dir2_files):
+    diffs = []
+    assert [sqlite_file.name for sqlite_file in dir1_files] == [
+        sqlite_file.name for sqlite_file in dir2_files
+    ]
+    for dir1_file, dir2_file in zip(dir1_files, dir2_files):
+        run(
+            ["command", "-v", "sqldiff"],
+            check=True,
+            shell=True,
+        )
+        completed_process = run(
+            f"sqldiff {dir1_file} {dir2_file}",
+            capture_output=True,
+            shell=True,
+        )
+        if completed_process.stdout:
+            diffs.append(completed_process.stdout)
+        if completed_process.stderr:
+            diffs.append(completed_process.stderr)
+        try:
+            completed_process.check_returncode()
+        except CalledProcessError as e:
+            print(f"sqldiff stdout: {completed_process.stdout}")
+            print(f"sqldiff stderr: {completed_process.stderr}")
+            raise e
+
+    assert not diffs
+
+
 def _diff_files(dir1, dir2, filenames):
     diffs = []
     for filename in filenames:
-        if ".sqlite" in filename:
-            run(
-                ["command", "-v", "sqldiff"],
-                check=True,
-                shell=True,
+        with dir1.joinpath(filename).open(mode="rb") as f1, dir2.joinpath(
+            filename
+        ).open(mode="rb") as f2:
+
+            f1_content = f1.readline()
+            f2_content = f2.readline()
+        if _is_text_file_output(f1_content) and _is_text_file_output(f1_content):
+
+            f1_content_list = _split_string_on_unknown_line_ending(
+                f1_content.decode("utf-8")
             )
-            completed_process = run(
-                f"sqldiff {dir1.joinpath(filename)} {dir2.joinpath(filename)}",
-                capture_output=True,
-                shell=True,
+            f2_content_list = _split_string_on_unknown_line_ending(
+                f2_content.decode("utf-8")
             )
-            if completed_process.stdout:
-                diffs.append(completed_process.stdout)
-            if completed_process.stderr:
-                diffs.append(completed_process.stderr)
-            try:
-                completed_process.check_returncode()
-            except CalledProcessError as e:
-                print(f"sqldiff {filename} stdout: {completed_process.stdout}")
-                print(f"sqldiff {filename} stderr: {completed_process.stderr}")
-                raise e
+            diffs.extend(
+                context_diff(
+                    f1_content_list,
+                    f2_content_list,
+                    fromfile=str(dir1.joinpath(filename)),
+                    tofile=str(dir2.joinpath(filename)),
+                )
+            )
         else:
-            with dir1.joinpath(filename).open(mode="rb") as f1, dir2.joinpath(
-                filename
-            ).open(mode="rb") as f2:
-
-                f1_content = f1.readline()
-                f2_content = f2.readline()
-            if _is_text_file_output(f1_content) and _is_text_file_output(f1_content):
-
-                f1_content_list = _split_string_on_unknown_line_ending(
-                    f1_content.decode("utf-8")
+            diffs.extend(
+                diff_bytes(
+                    context_diff,
+                    bytes(f1_content),
+                    bytes(f2_content),
+                    fromfile=str(dir1.joinpath(filename)),
+                    tofile=str(dir2.joinpath(filename)),
                 )
-                f2_content_list = _split_string_on_unknown_line_ending(
-                    f2_content.decode("utf-8")
-                )
-                diffs.extend(
-                    context_diff(
-                        f1_content_list,
-                        f2_content_list,
-                        fromfile=str(dir1.joinpath(filename)),
-                        tofile=str(dir2.joinpath(filename)),
-                    )
-                )
-            else:
-                diffs.extend(
-                    diff_bytes(
-                        context_diff,
-                        bytes(f1_content),
-                        bytes(f2_content),
-                        fromfile=str(dir1.joinpath(filename)),
-                        tofile=str(dir2.joinpath(filename)),
-                    )
-                )
+            )
     return diffs
 
 
@@ -97,7 +105,12 @@ def _assert_tree_identical(dir1, dir2, only=None):
             filepath.name for filepath in dir2.glob("**/*") if filepath.name not in only
         ]
     else:
-        ignore = None
+        ignore = []
+    dir1_sqlite = sorted(dir1.glob("**/*.sqlite*"))
+    dir2_sqlite = sorted(dir1.glob("**/*.sqlite*"))
+    _diff_sql_files(dir1_sqlite, dir2_sqlite)
+
+    ignore.extend([sqlite_file.name for sqlite_file in dir1_sqlite])
     dircmp_instance = dircmp(dir1, dir2, ignore=ignore)
     assert not dircmp_instance.left_only
     assert not dircmp_instance.right_only
