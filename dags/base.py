@@ -263,46 +263,44 @@ def callable_dataset_task(**kwargs):
     resource_pipeline_mapping = _get_resource_pipeline_mapping(kwargs)
     assert len(resource_pipeline_mapping) > 0
     for resource_hash, pipeline_names in resource_pipeline_mapping.items():
+        for pipeline_name in pipeline_names:
 
-        assert len(pipeline_names) == 1
-        pipeline_name = pipeline_names[0]
+            api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
+            issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
+            issue_dir.mkdir(exist_ok=True, parents=True)
+            collection_repository_path.joinpath("transformed").joinpath(
+                pipeline_name
+            ).mkdir(exist_ok=True, parents=True)
+            collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
+                exist_ok=True, parents=True
+            )
+            # Most digital_land.API() commands expect strings not pathlib.Path
+            pipeline_cmd_args = {
+                "input_path": str(resource_dir.joinpath(resource_hash)),
+                "output_path": str(
+                    collection_repository_path.joinpath("transformed")
+                    .joinpath(pipeline_name)
+                    .joinpath(resource_hash)
+                ),
+                "collection_dir": collection_dir,
+                "null_path": None,
+                "issue_dir": issue_dir,
+                "organisation_path": organisation_csv_path,
+                "save_harmonised": True,
+            }
+            log_string = (
+                f"digital-land --pipeline-name {pipeline_name} pipeline "
+                f"--issue-dir {pipeline_cmd_args['issue_dir']} "
+                f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
+                f"--null-path {pipeline_cmd_args['null_path']} "
+                f"--organisation-path {pipeline_cmd_args['organisation_path']} "
+            )
+            if pipeline_cmd_args["save_harmonised"]:
+                log_string += " --save-harmonised"
 
-        api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
-        issue_dir = collection_repository_path.joinpath("issue").joinpath(pipeline_name)
-        issue_dir.mkdir(exist_ok=True, parents=True)
-        collection_repository_path.joinpath("transformed").joinpath(
-            pipeline_name
-        ).mkdir(exist_ok=True, parents=True)
-        collection_repository_path.joinpath("harmonised").joinpath(pipeline_name).mkdir(
-            exist_ok=True, parents=True
-        )
-        # Most digital_land.API() commands expect strings not pathlib.Path
-        pipeline_cmd_args = {
-            "input_path": str(resource_dir.joinpath(resource_hash)),
-            "output_path": str(
-                collection_repository_path.joinpath("transformed")
-                .joinpath(pipeline_name)
-                .joinpath(resource_hash)
-            ),
-            "collection_dir": collection_dir,
-            "null_path": None,
-            "issue_dir": issue_dir,
-            "organisation_path": organisation_csv_path,
-            "save_harmonised": True,
-        }
-        log_string = (
-            f"digital-land --pipeline-name {pipeline_name} pipeline "
-            f"--issue-dir {pipeline_cmd_args['issue_dir']} "
-            f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
-            f"--null-path {pipeline_cmd_args['null_path']} "
-            f"--organisation-path {pipeline_cmd_args['organisation_path']} "
-        )
-        if pipeline_cmd_args["save_harmonised"]:
-            log_string += " --save-harmonised"
+            logging.info(log_string)
 
-        logging.info(log_string)
-
-        api.pipeline_cmd(**pipeline_cmd_args)
+            api.pipeline_cmd(**pipeline_cmd_args)
 
 
 def callable_build_dataset_task(**kwargs):
