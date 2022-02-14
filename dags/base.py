@@ -346,13 +346,13 @@ def callable_build_dataset_task(**kwargs):
             f" {actual_input_paths_str} {sqlite_artifact_path_str}"
         )
 
-        api.load_entries_cmd(actual_input_paths_str, sqlite_artifact_path_str)
+        api.dataset_create_cmd(actual_input_paths_str, sqlite_artifact_path_str)
 
         logging.info(
             f"digital-land --pipeline-name {dataset_name} build-dataset "
             f" {sqlite_artifact_path_str} {unified_collection_csv_path_str}"
         )
-        api.build_dataset_cmd(sqlite_artifact_path_str, unified_collection_csv_path_str)
+        api.dataset_dump_cmd(sqlite_artifact_path_str, unified_collection_csv_path_str)
 
 
 def callable_push_s3_task(**kwargs):

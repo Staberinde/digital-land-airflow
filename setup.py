@@ -18,7 +18,7 @@ setup(
         # Pipeline dependencies
         "pip",  # This is here to ensure we are using the latest version
         "csvkit",  # This is a pipeline dep
-        "digital-land@git+https://github.com/digital-land/digital-land-python@expose-pipelinne-resource-mapping",
+        "digital-land@git+https://github.com/digital-land/digital-land-python@post-refactoring-api-interface-fixes",
         "specification@git+https://github.com/digital-land/specification",
         # Utils
         "pendulum~=2.1.2",
