@@ -35,21 +35,21 @@ def _get_dag_cronstring():
     return os.environ.get("PIPELINE_RUN_CRON_STRING")
 
 
-def _get_api_instance(kwargs, pipeline_name=None):
-    if not pipeline_name:
-        pipeline_name = kwargs["dag"]._dag_id
+def _get_api_instance(kwargs, dataset_name=None):
+    if not dataset_name:
+        dataset_name = kwargs["dag"]._dag_id
 
     collection_repository_path = _get_collection_repository_path(kwargs)
     pipeline_dir = collection_repository_path.joinpath("pipeline")
     assert pipeline_dir.exists()
 
     logging.info(
-        f"Instantiating DigitalLandApi for pipeline {pipeline_name} using pipeline "
+        f"Instantiating DigitalLandApi for pipeline {dataset_name} using pipeline "
         f"directory: {pipeline_dir} and specification_directory {specification_path}"
     )
     return DigitalLandApi(
         debug=False,
-        pipeline_name=pipeline_name,
+        dataset=dataset_name,
         pipeline_dir=str(pipeline_dir),
         specification_dir=str(specification_path),
     )
@@ -262,26 +262,26 @@ def callable_dataset_task(**kwargs):
 
     resource_pipeline_mapping = _get_resource_pipeline_mapping(kwargs)
     assert len(resource_pipeline_mapping) > 0
-    for resource_hash, pipeline_names in resource_pipeline_mapping.items():
-        for pipeline_name in pipeline_names:
+    for resource_hash, dataset_names in resource_pipeline_mapping.items():
+        for dataset_name in dataset_names:
 
-            api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
+            api = _get_api_instance(kwargs, dataset_name=dataset_name)
             issue_dir = collection_repository_path.joinpath("issue").joinpath(
-                pipeline_name
+                dataset_name
             )
             issue_dir.mkdir(exist_ok=True, parents=True)
             collection_repository_path.joinpath("transformed").joinpath(
-                pipeline_name
+                dataset_name
             ).mkdir(exist_ok=True, parents=True)
             collection_repository_path.joinpath("harmonised").joinpath(
-                pipeline_name
+                dataset_name
             ).mkdir(exist_ok=True, parents=True)
             # Most digital_land.API() commands expect strings not pathlib.Path
             pipeline_cmd_args = {
                 "input_path": str(resource_dir.joinpath(resource_hash)),
                 "output_path": str(
                     collection_repository_path.joinpath("transformed")
-                    .joinpath(pipeline_name)
+                    .joinpath(dataset_name)
                     .joinpath(resource_hash)
                 ),
                 "collection_dir": collection_dir,
@@ -291,7 +291,7 @@ def callable_dataset_task(**kwargs):
                 "save_harmonised": True,
             }
             log_string = (
-                f"digital-land --pipeline-name {pipeline_name} pipeline "
+                f"digital-land --pipeline-name {dataset_name} pipeline "
                 f"--issue-dir {pipeline_cmd_args['issue_dir']} "
                 f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
                 f"--organisation-path {pipeline_cmd_args['organisation_path']} "
@@ -314,11 +314,11 @@ def callable_build_dataset_task(**kwargs):
 
     pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
-    for pipeline_name, resource_hash_list in pipeline_resource_mapping.items():
-        api = _get_api_instance(kwargs, pipeline_name=pipeline_name)
+    for dataset_name, resource_hash_list in pipeline_resource_mapping.items():
+        api = _get_api_instance(kwargs, dataset_name=dataset_name)
         potential_input_paths = [
             collection_repository_path.joinpath("transformed")
-            .joinpath(pipeline_name)
+            .joinpath(dataset_name)
             .joinpath(resource_hash)
             for resource_hash in resource_hash_list
         ]
@@ -331,10 +331,10 @@ def callable_build_dataset_task(**kwargs):
             )
 
         sqlite_artifact_path = dataset_path.joinpath(
-            f"{pipeline_name}.sqlite3",
+            f"{dataset_name}.sqlite3",
         )
         unified_collection_csv_path = dataset_path.joinpath(
-            f"{pipeline_name}.csv",
+            f"{dataset_name}.csv",
         )
         # Most digital_land.API() commands expect strings not pathlib.Path
         actual_input_paths_str = list(map(str, actual_input_paths))
@@ -342,14 +342,14 @@ def callable_build_dataset_task(**kwargs):
         unified_collection_csv_path_str = str(unified_collection_csv_path)
 
         logging.info(
-            f"digital-land --pipeline-name {pipeline_name} load-entries "
+            f"digital-land --pipeline-name {dataset_name} load-entries "
             f" {actual_input_paths_str} {sqlite_artifact_path_str}"
         )
 
         api.load_entries_cmd(actual_input_paths_str, sqlite_artifact_path_str)
 
         logging.info(
-            f"digital-land --pipeline-name {pipeline_name} build-dataset "
+            f"digital-land --pipeline-name {dataset_name} build-dataset "
             f" {sqlite_artifact_path_str} {unified_collection_csv_path_str}"
         )
         api.build_dataset_cmd(sqlite_artifact_path_str, unified_collection_csv_path_str)
@@ -406,7 +406,7 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
-def get_all_pipeline_names():
+def get_all_dataset_names():
     return [
         collection["collection"]
         for collection in DictReader(
@@ -415,9 +415,9 @@ def get_all_pipeline_names():
     ]
 
 
-for pipeline_name in get_all_pipeline_names():
+for dataset_name in get_all_dataset_names():
     with DAG(
-        pipeline_name,
+        dataset_name,
         start_date=datetime.now(),
         timetable=CronDataIntervalTimetable(
             _get_dag_cronstring(), timezone=timezone("Europe/London")
@@ -485,7 +485,7 @@ for pipeline_name in get_all_pipeline_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("collection/resource", f"{pipeline_name}/collection/resource"),
+                    ("collection/resource", f"{dataset_name}/collection/resource"),
                 ],
                 "files_to_push": [
                     (
@@ -495,7 +495,7 @@ for pipeline_name in get_all_pipeline_names():
                             "collection/resource.csv",
                             "collection/source.csv",
                         ],
-                        f"{pipeline_name}/collection",
+                        f"{dataset_name}/collection",
                     ),
                 ],
             },
@@ -513,9 +513,9 @@ for pipeline_name in get_all_pipeline_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    (f"transformed/{pipeline_name}", f"{pipeline_name}/transformed"),
-                    (f"issue/{pipeline_name}", f"{pipeline_name}/issue"),
-                    ("dataset", f"{pipeline_name}/dataset"),
+                    (f"transformed/{dataset_name}", f"{dataset_name}/transformed"),
+                    (f"issue/{dataset_name}", f"{dataset_name}/issue"),
+                    ("dataset", f"{dataset_name}/dataset"),
                 ],
                 "files_to_push": [],
             },
@@ -541,4 +541,4 @@ for pipeline_name in get_all_pipeline_names():
         push_s3_dataset >> working_directory_cleanup
 
         # Airflow likes to be able to find its DAG's as module scoped variables
-        globals()[f"{kebab_to_pascal_case(pipeline_name)}Dag"] = InstantiatedDag
+        globals()[f"{kebab_to_pascal_case(dataset_name)}Dag"] = InstantiatedDag
