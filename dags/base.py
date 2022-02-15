@@ -286,7 +286,7 @@ def callable_dataset_task(**kwargs):
                 "output_path": str(
                     collection_repository_path.joinpath("transformed")
                     .joinpath(dataset_name)
-                    .joinpath(resource_hash)
+                    .joinpath(f"{resource_hash}.csv")
                 ),
                 "collection_dir": collection_dir,
                 "null_path": None,
@@ -325,7 +325,7 @@ def callable_build_dataset_task(**kwargs):
         potential_input_paths = [
             collection_repository_path.joinpath("transformed")
             .joinpath(dataset_name)
-            .joinpath(resource_hash)
+            .joinpath(f"{resource_hash}.csv")
             for resource_hash in resource_hash_list
         ]
         actual_input_paths = list(filter(lambda x: x.exists(), potential_input_paths))
