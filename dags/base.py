@@ -288,7 +288,8 @@ def callable_dataset_task(**kwargs):
                 "null_path": None,
                 "issue_dir": issue_dir,
                 "organisation_path": organisation_csv_path,
-                "save_harmonised": True,
+                # TODO Figure out a way to do this without hardcoding, maybe introspect collection filesystem?
+                "save_harmonised": "brownfield-land" in dataset_name,
             }
             log_string = (
                 f"digital-land --pipeline-name {dataset_name} pipeline "
