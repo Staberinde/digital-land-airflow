@@ -250,10 +250,12 @@ def test_dataset_specified_resources(
 
 
 def test_build_dataset(
+    column_field_dir,
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
     expected_results_dir,
+    issue_dir,
     transformed_dir,
     kwargs,
     tmp_path,
@@ -272,10 +274,12 @@ def test_build_dataset(
 
 
 def test_build_dataset_specified_resources(
+    column_field_dir,
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
     expected_results_dir,
+    issue_dir,
     transformed_dir,
     kwargs_specified_resources,
     tmp_path,

@@ -153,3 +153,14 @@ def kwargs_specified_resources(kwargs):
         }
     )
     return kwargs
+
+
+@pytest.fixture
+def column_field_dir(data_dir, tmp_path):
+    copytree(
+        data_dir.joinpath("var").joinpath("column-field"),
+        tmp_path.joinpath("var").joinpath("column-field"),
+        dirs_exist_ok=True,
+    )
+    return column_field_dir
+

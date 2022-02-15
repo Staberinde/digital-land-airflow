@@ -276,9 +276,11 @@ def callable_dataset_task(**kwargs):
             collection_repository_path.joinpath("harmonised").joinpath(
                 dataset_name
             ).mkdir(exist_ok=True, parents=True)
-            column_field_dir = _get_run_temporary_directory(kwargs).joinpath(
-                "column_field_log"
-            )
+
+            # This is hard coded relative path in digital-land-python
+            column_field_dir = collection_repository_path.joinpath(
+                "var/column-field/"
+            ).joinpath(dataset_name)
             column_field_dir.mkdir(exist_ok=True, parents=True)
             # Most digital_land.API() commands expect strings not pathlib.Path
             pipeline_cmd_args = {
