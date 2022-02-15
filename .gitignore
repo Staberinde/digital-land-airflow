@@ -6,3 +6,5 @@ pyrightconfig.json
 .coverage/
 .build/
 digital_land_airflow.egg-info/
+
+.junitxml
