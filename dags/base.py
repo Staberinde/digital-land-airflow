@@ -215,7 +215,7 @@ def callable_collection_task(**kwargs):
     logging.info(
         f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"
     )
-    api.pipeline_collection_save_csv_cmd(collection_dir=collection_dir)
+    api.collection_save_csv_cmd(collection_dir=collection_dir)
 
 
 def callable_commit_task(**kwargs):
