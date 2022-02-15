@@ -276,6 +276,10 @@ def callable_dataset_task(**kwargs):
             collection_repository_path.joinpath("harmonised").joinpath(
                 dataset_name
             ).mkdir(exist_ok=True, parents=True)
+            column_field_dir = _get_run_temporary_directory(kwargs).joinpath(
+                "column_field_log"
+            )
+            column_field_dir.mkdir(exist_ok=True, parents=True)
             # Most digital_land.API() commands expect strings not pathlib.Path
             pipeline_cmd_args = {
                 "input_path": str(resource_dir.joinpath(resource_hash)),
@@ -290,6 +294,7 @@ def callable_dataset_task(**kwargs):
                 "organisation_path": organisation_csv_path,
                 # TODO Figure out a way to do this without hardcoding, maybe introspect collection filesystem?
                 "save_harmonised": "brownfield-land" in dataset_name,
+                "column_field_dir": str(column_field_dir),
             }
             log_string = (
                 f"digital-land --pipeline-name {dataset_name} pipeline "
