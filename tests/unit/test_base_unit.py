@@ -73,16 +73,24 @@ def test_commit(kwargs, mocker, tmp_path):
     push_mock.assert_called_once()
 
 
-def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker):
+def test_push_s3_dataset(
+    collection_metadata_dir,
+    collection_payload_dir,
+    collection_resources_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
+    kwargs,
+    transformed_dir,
+    issue_dir,
+    dataset_dir,
+    mocker,
+    tmp_path,
+):
     #  Setup
+    tmp_path.joinpath("pipeline").mkdir()
+
     kwargs["directories_to_push"] = [
-        ("transformed/listed-building-grade", "listed-building-grade/transformed"),
-        ("transformed/listed-building-outline", "listed-building-outline/transformed"),
-        ("transformed/locally-listed-building", "locally-listed-building/transformed"),
-        ("issue/listed-building-grade", "listed-building-grade/issue"),
-        ("issue/listed-building-outline", "listed-building-outline/issue"),
-        ("issue/locally-listed-building", "locally-listed-building/issue"),
-        ("dataset", "listed-building/dataset"),
+        ("transformed/{dataset_name}", "{dataset_name}/transformed"),
+        ("issue/{dataset_name}", "{dataset_name}/issue"),
+        ("dataset", "{dataset_name}/dataset"),
     ]
     kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
@@ -126,11 +134,15 @@ def test_push_s3_dataset(kwargs, transformed_dir, issue_dir, dataset_dir, mocker
 
 
 def test_push_s3_collection(
-    kwargs, collection_resources_dir, collection_metadata_dir, mocker
+    kwargs,
+    collection_resources_dir,
+    collection_metadata_dir,
+    collection_payload_dir,
+    mocker,
 ):
     #  Setup
     kwargs["directories_to_push"] = [
-        ("collection/resource", "listed-building/collection/resource"),
+        ("collection/resource", "{dataset_name}/collection/resource"),
     ]
     kwargs["files_to_push"] = [
         (
@@ -140,7 +152,7 @@ def test_push_s3_collection(
                 "collection/resource.csv",
                 "collection/source.csv",
             ],
-            "listed-building/collection",
+            "{dataset_name}/collection",
         ),
     ]
     mock_s3_client = MagicMock()

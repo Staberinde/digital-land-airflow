@@ -163,4 +163,3 @@ def column_field_dir(data_dir, tmp_path):
         dirs_exist_ok=True,
     )
     return column_field_dir
-

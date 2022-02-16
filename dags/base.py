@@ -121,8 +121,13 @@ def _get_resource_pipeline_mapping(kwargs):
 
 
 def _upload_directory_to_s3(directory: Path, destination: str):
-    files = directory.iterdir()
-    _upload_files_to_s3(files, destination)
+    if directory.exists():
+        files = directory.iterdir()
+        _upload_files_to_s3(files, destination)
+    else:
+        logging.warning(
+            f"Directory {directory} not present in working directory!. Skipping upload to S3"
+        )
 
 
 def _upload_files_to_s3(files, destination):
@@ -374,23 +379,41 @@ def callable_push_s3_task(**kwargs):
             "Doing nothing as params['git_ref'] is set and we won't be able to push unless we're at HEAD"
         )
     collection_repository_path = _get_collection_repository_path(kwargs)
-    directories_to_push = kwargs["directories_to_push"]
-    files_to_push = kwargs["files_to_push"]
+    pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
+    assert len(pipeline_resource_mapping) > 0
+    for dataset_name in pipeline_resource_mapping.keys():
+        directories_to_push = [
+            (
+                local_directory_path.format(dataset_name=dataset_name),
+                destination_directory_path.format(dataset_name=dataset_name),
+            )
+            for local_directory_path, destination_directory_path in kwargs[
+                "directories_to_push"
+            ]
+        ]
+        files_to_push = [
+            (
+                # local_file_path.format() not strictly necessary right now but including for futureproofing
+                local_file_path.format(dataset_name=dataset_name),
+                destination_directory_path.format(dataset_name=dataset_name),
+            )
+            for local_file_path, destination_directory_path in kwargs["files_to_push"]
+        ]
 
-    for source_directory, destination_directory in directories_to_push:
-        _upload_directory_to_s3(
-            directory=collection_repository_path.joinpath(source_directory),
-            destination=destination_directory,
-        )
+        for source_directory, destination_directory in directories_to_push:
+            _upload_directory_to_s3(
+                directory=collection_repository_path.joinpath(source_directory),
+                destination=destination_directory,
+            )
 
-    for source_files, destination_directory in files_to_push:
-        _upload_files_to_s3(
-            files=[
-                collection_repository_path.joinpath(filepath)
-                for filepath in source_files
-            ],
-            destination=destination_directory,
-        )
+        for source_files, destination_directory in files_to_push:
+            _upload_files_to_s3(
+                files=[
+                    collection_repository_path.joinpath(filepath)
+                    for filepath in source_files
+                ],
+                destination=destination_directory,
+            )
 
 
 def callable_working_directory_cleanup_task(**kwargs):
@@ -493,7 +516,7 @@ for dataset_name in get_all_dataset_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("collection/resource", f"{dataset_name}/collection/resource"),
+                    ("collection/resource", "{dataset_name}/collection/resource"),
                 ],
                 "files_to_push": [
                     (
@@ -503,7 +526,7 @@ for dataset_name in get_all_dataset_names():
                             "collection/resource.csv",
                             "collection/source.csv",
                         ],
-                        f"{dataset_name}/collection",
+                        "{dataset_name}/collection",
                     ),
                 ],
             },
@@ -521,9 +544,9 @@ for dataset_name in get_all_dataset_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    (f"transformed/{dataset_name}", f"{dataset_name}/transformed"),
-                    (f"issue/{dataset_name}", f"{dataset_name}/issue"),
-                    ("dataset", f"{dataset_name}/dataset"),
+                    ("transformed/{dataset_name}", "{dataset_name}/transformed"),
+                    ("issue/{dataset_name}", "{dataset_name}/issue"),
+                    ("dataset", "{dataset_name}/dataset"),
                 ],
                 "files_to_push": [],
             },

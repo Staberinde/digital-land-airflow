@@ -37,6 +37,7 @@ setup(
             "pytest-mock",
             "pytest-dotenv",
             "apache-airflow~=2.2.0",
+            "pytest-pudb",
         ]
     },
     classifiers=[
