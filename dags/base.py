@@ -372,6 +372,7 @@ def callable_build_dataset_task(**kwargs):
 
 
 def callable_push_s3_task(**kwargs):
+    dataset_name = _get_collection_name(kwargs)
     environment = _get_environment()
     if environment != "production":
         raise AirflowSkipException(
@@ -384,11 +385,11 @@ def callable_push_s3_task(**kwargs):
     collection_repository_path = _get_collection_repository_path(kwargs)
     pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
-    for dataset_name in pipeline_resource_mapping.keys():
+    for pipeline_name in pipeline_resource_mapping.keys():
         directories_to_push = [
             (
-                local_directory_path.format(dataset_name=dataset_name),
-                destination_directory_path.format(dataset_name=dataset_name),
+                local_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
+                destination_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
             )
             for local_directory_path, destination_directory_path in kwargs[
                 "directories_to_push"
@@ -396,11 +397,10 @@ def callable_push_s3_task(**kwargs):
         ]
         files_to_push = [
             (
-                # local_file_path.format() not strictly necessary right now but including for futureproofing
-                local_file_path.format(dataset_name=dataset_name),
-                destination_directory_path.format(dataset_name=dataset_name),
+                local_file_paths,
+                destination_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
             )
-            for local_file_path, destination_directory_path in kwargs["files_to_push"]
+            for local_file_paths, destination_directory_path in kwargs["files_to_push"]
         ]
 
         for source_directory, destination_directory in directories_to_push:
@@ -547,8 +547,8 @@ for dataset_name in get_all_dataset_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("transformed/{dataset_name}", "{dataset_name}/transformed"),
-                    ("issue/{dataset_name}", "{dataset_name}/issue"),
+                    ("transformed/{pipeline_name}", "{dataset_name}/{pipeline_name}/transformed"),
+                    ("issue/{pipeline_name}", "{dataset_name}/{pipeline_name}/issue"),
                     ("dataset", "{dataset_name}/dataset"),
                 ],
                 "files_to_push": [],

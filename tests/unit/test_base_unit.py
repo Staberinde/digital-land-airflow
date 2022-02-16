@@ -139,8 +139,10 @@ def test_push_s3_collection(
     collection_metadata_dir,
     collection_payload_dir,
     mocker,
+    tmp_path,
 ):
     #  Setup
+    tmp_path.joinpath("pipeline").mkdir()
     kwargs["directories_to_push"] = [
         ("collection/resource", "{dataset_name}/collection/resource"),
     ]
@@ -180,7 +182,7 @@ def test_push_s3_collection(
                 f"listed-building/collection/{path.name}",
             )
             for path in sorted(collection_metadata_dir.iterdir())
-            if path.name not in ["resource", "collection.csv"]
+            if path.name not in ["resource", "collection.csv",  "log"]
         ]
     )
 
