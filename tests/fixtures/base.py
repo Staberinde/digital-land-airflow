@@ -1,3 +1,5 @@
+import os
+
 from csv import DictReader
 from datetime import date
 from pathlib import Path
@@ -123,7 +125,7 @@ def expected_results_dir(data_dir):
 
 
 @pytest.fixture
-def kwargs(tmp_path):
+def kwargs(mocker, tmp_path):
     def _xcom_pull_return(key):
         if key == "collection_repository_path":
             return tmp_path
@@ -132,6 +134,15 @@ def kwargs(tmp_path):
                 f"I don't yet know what to do with xcom_pull arg {key}"
             )
 
+    def _variable_return(key):
+        if key == "organisation_csv_url":
+            return os.environ["ORGANISATION_CSV_URL"]
+        else:
+            raise DigitalLandAirflowTestSetupException(
+                f"I don't yet know what to do with Variable {key}"
+            )
+
+    mocker.patch("airflow.models.Variable.get", side_effect=_variable_return)
     return {
         "ti": Mock(**{"xcom_pull.side_effect": _xcom_pull_return}),
         "dag": Mock(**{"_dag_id": "listed-building"}),

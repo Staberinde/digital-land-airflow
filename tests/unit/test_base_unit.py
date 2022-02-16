@@ -75,7 +75,7 @@ def test_commit(kwargs, mocker, tmp_path):
 
 def test_push_s3_dataset(
     collection_metadata_dir,
-    collection_payload_dir,
+    collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     collection_resources_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     kwargs,
     transformed_dir,

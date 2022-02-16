@@ -162,6 +162,7 @@ def test_collection(collection_metadata_dir, collection_payload_dir, kwargs, tmp
 
 
 def test_dataset(
+    collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
@@ -205,6 +206,7 @@ def test_dataset_specified_resources(
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,
+    collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     data_dir,
     expected_results_dir,
     kwargs_specified_resources,
@@ -252,6 +254,7 @@ def test_dataset_specified_resources(
 def test_build_dataset(
     column_field_dir,
     collection_metadata_dir,
+    collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     collection_resources_dir,
     collection_resources_file,
     expected_results_dir,
@@ -275,6 +278,7 @@ def test_build_dataset(
 
 def test_build_dataset_specified_resources(
     column_field_dir,
+    collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     collection_metadata_dir,
     collection_resources_dir,
     collection_resources_file,

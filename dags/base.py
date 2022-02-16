@@ -324,6 +324,7 @@ def callable_build_dataset_task(**kwargs):
 
     dataset_path = collection_repository_path.joinpath("dataset")
     dataset_path.mkdir()
+    organisation_csv_path = _get_organisation_csv(kwargs)
 
     pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
@@ -359,7 +360,9 @@ def callable_build_dataset_task(**kwargs):
             f" {actual_input_paths_str} {sqlite_artifact_path_str}"
         )
 
-        api.dataset_create_cmd(actual_input_paths_str, sqlite_artifact_path_str)
+        api.dataset_create_cmd(
+            actual_input_paths_str, sqlite_artifact_path_str, organisation_csv_path
+        )
 
         logging.info(
             f"digital-land --pipeline-name {dataset_name} build-dataset "
