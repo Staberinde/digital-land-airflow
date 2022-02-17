@@ -547,8 +547,8 @@ for dataset_name in get_all_dataset_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("transformed/{pipeline_name}", "{dataset_name}/{pipeline_name}/transformed"),
-                    ("issue/{pipeline_name}", "{dataset_name}/{pipeline_name}/issue"),
+                    ("transformed/{pipeline_name}", "{dataset_name}/transformed/{pipeline_name}"),
+                    ("issue/{pipeline_name}", "{dataset_name}/issue/{pipeline_name}"),
                     ("dataset", "{dataset_name}/dataset"),
                 ],
                 "files_to_push": [],

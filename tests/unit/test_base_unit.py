@@ -86,10 +86,11 @@ def test_push_s3_dataset(
 ):
     #  Setup
     tmp_path.joinpath("pipeline").mkdir()
+    dataset_name = "listed-building"
 
     kwargs["directories_to_push"] = [
-        ("transformed/{dataset_name}", "{dataset_name}/transformed"),
-        ("issue/{dataset_name}", "{dataset_name}/issue"),
+        ("transformed/{pipeline_name}", "{dataset_name}/transformed/{pipeline_name}"),
+        ("issue/{pipeline_name}", "{dataset_name}/issue/{pipeline_name}"),
         ("dataset", "{dataset_name}/dataset"),
     ]
     kwargs["files_to_push"] = []
@@ -105,7 +106,7 @@ def test_push_s3_dataset(
                 call.upload_file(
                     str(path),
                     "iamacollections3bucket",
-                    f"{collection_dir.name}/transformed/{path.name}",
+                    f"{dataset_name}/transformed/{collection_dir.name}/{path.name}",
                 )
                 for path in collection_dir.iterdir()
             ]
@@ -116,7 +117,7 @@ def test_push_s3_dataset(
                 call.upload_file(
                     str(path),
                     "iamacollections3bucket",
-                    f"{collection_dir.name}/issue/{path.name}",
+                    f"{dataset_name}/issue/{collection_dir.name}/{path.name}",
                 )
                 for path in collection_dir.iterdir()
             ]
@@ -126,7 +127,7 @@ def test_push_s3_dataset(
             call.upload_file(
                 str(path),
                 "iamacollections3bucket",
-                f"listed-building/dataset/{path.name}",
+                f"{dataset_name}/dataset/{path.name}",
             )
             for path in dataset_dir.iterdir()
         ]
