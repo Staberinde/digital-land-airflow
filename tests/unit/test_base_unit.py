@@ -77,6 +77,7 @@ def test_push_s3_dataset(
     collection_metadata_dir,
     collection_payload_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
     collection_resources_dir,  # This is now a dependency of api.pipeline_resource_mapping_for_collection_
+    pipeline_dir,
     kwargs,
     transformed_dir,
     issue_dir,
@@ -85,8 +86,8 @@ def test_push_s3_dataset(
     tmp_path,
 ):
     #  Setup
-    tmp_path.joinpath("pipeline").mkdir()
     dataset_name = "listed-building"
+    #  tmp_path.joinpath("pipeline").mkdir()
 
     kwargs["directories_to_push"] = [
         ("transformed/{pipeline_name}", "{dataset_name}/transformed/{pipeline_name}"),
@@ -139,11 +140,12 @@ def test_push_s3_collection(
     collection_resources_dir,
     collection_metadata_dir,
     collection_payload_dir,
+    pipeline_dir,
     mocker,
     tmp_path,
 ):
     #  Setup
-    tmp_path.joinpath("pipeline").mkdir()
+    #  tmp_path.joinpath("pipeline").mkdir()
     kwargs["directories_to_push"] = [
         ("collection/resource", "{dataset_name}/collection/resource"),
     ]

@@ -41,6 +41,24 @@ def collection_resources_file(data_dir, tmp_path):
 
 
 @pytest.fixture
+def collection_logs_file(data_dir, tmp_path):
+    collection_dir = tmp_path.joinpath("collection")
+    collection_dir.mkdir(exist_ok=True)
+    log_file = collection_dir.joinpath("log.csv")
+
+    if log_file.exists():
+        print(
+            f"{log_file.name} exists from previous fixture, replacing with populated version"
+        )
+    log_file.touch()
+    copy(
+        data_dir.joinpath("collection").joinpath("resources").joinpath("log.csv"),
+        log_file,
+    )
+    return log_file
+
+
+@pytest.fixture
 def collection_resources_dir(data_dir, tmp_path):
     resources_dir = tmp_path.joinpath("collection").joinpath("resource")
     copytree(
@@ -137,6 +155,8 @@ def kwargs(mocker, tmp_path):
     def _variable_return(key):
         if key == "organisation_csv_url":
             return os.environ["ORGANISATION_CSV_URL"]
+        elif key == "temp_directory_root":
+            return os.environ["TEMP_DIRECTORY_ROOT"]
         else:
             raise DigitalLandAirflowTestSetupException(
                 f"I don't yet know what to do with Variable {key}"
@@ -175,3 +195,15 @@ def column_field_dir(data_dir, tmp_path):
         dirs_exist_ok=True,
     )
     return column_field_dir
+
+
+@pytest.fixture
+def pipeline_dir(data_dir, tmp_path):
+    pipeline_dir = tmp_path.joinpath("pipeline")
+    copytree(
+        data_dir.joinpath("pipeline"),
+        pipeline_dir,
+        dirs_exist_ok=True,
+    )
+    return pipeline_dir
+
