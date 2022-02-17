@@ -119,6 +119,10 @@ def _assert_tree_identical(dir1, dir2, only=None):
     )
 
 
+def _get_filename_without_suffix_from_path(path):
+    return path.name[: -len("".join(path.suffixes))]
+
+
 def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_path):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
@@ -136,7 +140,7 @@ def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_pa
         assert mock._url in [log["endpoint-url"] for log in all_logs]
 
 
-def test_collection(collection_metadata_dir, collection_payload_dir, kwargs, tmp_path):
+def test_collection(collection_resources_dir, collection_metadata_dir, collection_payload_dir, kwargs, tmp_path):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
 
@@ -148,7 +152,7 @@ def test_collection(collection_metadata_dir, collection_payload_dir, kwargs, tmp
         log_csv = DictReader(log_file)
         logs = list(log_csv)
         assert {log["endpoint"] for log in logs} == set(
-            path.name[: -len("".join(path.suffixes))]
+            _get_filename_without_suffix_from_path(path)
             for path in collection_payload_dir.iterdir()
         )
 
