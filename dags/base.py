@@ -41,6 +41,9 @@ def _get_api_instance(kwargs, dataset_name=None):
 
     collection_repository_path = _get_collection_repository_path(kwargs)
     pipeline_dir = collection_repository_path.joinpath("pipeline")
+    # This is a simple assertion to verify the collection we are operating on is a modern one generated from collection-template
+    # as these are the only ones we can work with
+    # This may be able to be safely removed in the future
     assert pipeline_dir.exists()
 
     logging.info(

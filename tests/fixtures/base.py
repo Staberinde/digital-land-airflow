@@ -1,5 +1,3 @@
-import os
-
 from csv import DictReader
 from datetime import date
 from pathlib import Path
