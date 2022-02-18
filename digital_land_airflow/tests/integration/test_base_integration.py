@@ -107,11 +107,11 @@ def _assert_tree_identical(dir1, dir2, only=None):
     else:
         ignore = []
 
-    # TODO fix this, it's unstable
-    #  dir1_sqlite = sorted(dir1.glob("**/*.sqlite*"))
+    # TODO the insertion order in digital-land-python is unstable, see if getting it reliable is practical
+    dir1_sqlite = sorted(dir1.glob("**/*.sqlite*"))
     #  dir2_sqlite = sorted(dir2.glob("**/*.sqlite*"))
     #  _diff_sql_files(dir1_sqlite, dir2_sqlite)
-    #  ignore.extend([sqlite_file.name for sqlite_file in dir1_sqlite])
+    ignore.extend([sqlite_file.name for sqlite_file in dir1_sqlite])
 
     dircmp_instance = DeepDirCmp(dir1, dir2, ignore=ignore)
     assert not dircmp_instance.left_only
