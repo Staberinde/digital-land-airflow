@@ -154,7 +154,7 @@ def airflow_variable(mocker, organisation_csv_url):
         if key == "organisation_csv_url":
             return organisation_csv_url
         elif key == "temp_directory_root":
-            return os.environ["TEMP_DIRECTORY_ROOT"]
+            return "/tmp"
         else:
             raise DigitalLandAirflowTestSetupException(
                 f"I don't yet know what to do with Variable {key}"

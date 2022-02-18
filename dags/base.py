@@ -71,7 +71,7 @@ _get_resources_name = _get_repo_name
 
 
 def _get_temporary_directory():
-    return Path("/tmp")
+    return Path(Variable.get("temp_directory_root"))
 
 
 def _get_run_temporary_directory(kwargs):
