@@ -202,9 +202,7 @@ def test_dataset(
         callable_dataset_task(**kwargs)
 
     # Assert
-    _assert_tree_identical(
-        transformed_dir, data_dir.joinpath("transformed")
-    )
+    _assert_tree_identical(transformed_dir, data_dir.joinpath("transformed"))
 
     _assert_tree_identical(issue_dir, data_dir.joinpath("issue"))
 
