@@ -1,14 +1,18 @@
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
+
+from version import get_version
 
 
 setup(
     name="digital-land-airflow",
+    version=get_version(),
     long_description_content_type="text/markdown",
     author="MHCLG Digital Land Team",
     author_email="DigitalLand@communities.gov.uk",
     license="MIT",
     url="https://github.com/digital-land/digital-land-airflow",
-    packages=find_packages(),
+    # TOOD move files into digital_land_airflow directory
+    packages=find_namespace_packages(include=["digital_land_airflow*"]),
     include_package_data=True,
     install_requires=[
         # Data fetchers
@@ -18,14 +22,15 @@ setup(
         # Pipeline dependencies
         "pip",  # This is here to ensure we are using the latest version
         "csvkit",  # This is a pipeline dep
-        "digital-land@git+https://github.com/digital-land/digital-land-python",
-        "specification@git+https://github.com/digital-land/specification",
         # Utils
         "pendulum~=2.1.2",
         "pyhumps~=3.5.0",
     ],
     setup_requires=["pytest-runner"],
     extras_require={
+        "digital_land": [
+            "digital-land@git+https://github.com/digital-land/digital-land-python",
+        ],
         "test": [
             "black",
             "coverage",
@@ -39,7 +44,7 @@ setup(
             "apache-airflow~=2.2.0",
             "pytest-pudb",
             "deep-dircmp",
-        ]
+        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

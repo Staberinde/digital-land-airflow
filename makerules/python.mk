@@ -1,4 +1,4 @@
-PIP_INSTALL_PACKAGE=[test]
+PIP_INSTALL_PACKAGE=[test,digital_land]
 
 all:: lint test coverage
 

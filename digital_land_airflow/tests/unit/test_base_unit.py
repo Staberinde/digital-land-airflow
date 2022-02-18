@@ -1,6 +1,6 @@
 from unittest.mock import call, Mock, MagicMock
 
-from dags.base import (
+from digital_land_airflow.dags.base import (
     callable_clone_task,
     callable_commit_task,
     callable_download_s3_resources_task,
@@ -13,7 +13,9 @@ def test_clone(kwargs, mocker, tmp_path):
     expected_path = tmp_path.joinpath(f"listed-building_{kwargs['run_id']}").joinpath(
         "listed-building-collection"
     )
-    mocker.patch("dags.base._get_temporary_directory", return_value=tmp_path)
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
+    )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     assert not expected_path.exists()
     callable_clone_task(**kwargs)
@@ -55,9 +57,11 @@ def test_commit(kwargs, mocker, tmp_path):
     # Setup
     tmp_path.joinpath("foo").touch()
     kwargs["paths_to_commit"] = ["foo"]
-    mocker.patch("dags.base._get_environment", return_value="production")
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_environment", return_value="production"
+    )
     push_mock = MagicMock()
-    mock_repo = mocker.patch("dags.base.Repo")
+    mock_repo = mocker.patch("digital_land_airflow.dags.base.Repo")
     mock_repo.configure_mock(
         **{
             "return_value.remotes.__getitem__.return_value.urls": ["iamaurl"],
@@ -96,9 +100,13 @@ def test_push_s3_dataset(
     ]
     kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
-    mocker.patch("dags.base._get_environment", return_value="production")
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_environment", return_value="production"
+    )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
-    mocker.patch("dags.base._get_s3_client", return_value=mock_s3_client)
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_s3_client", return_value=mock_s3_client
+    )
     # Call
     callable_push_s3_task(**kwargs)
     for collection_dir in transformed_dir.iterdir():
@@ -161,9 +169,13 @@ def test_push_s3_collection(
         ),
     ]
     mock_s3_client = MagicMock()
-    mocker.patch("dags.base._get_environment", return_value="production")
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_environment", return_value="production"
+    )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
-    mocker.patch("dags.base._get_s3_client", return_value=mock_s3_client)
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_s3_client", return_value=mock_s3_client
+    )
     # Call
     callable_push_s3_task(**kwargs)
     # Assert
@@ -195,7 +207,10 @@ def test_get_organisation_csv(kwargs, data_dir, mocker, requests_mock, tmp_path)
     # Setup
     organisation_csv_fixture = data_dir.joinpath("organisation.csv")
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
-    mocker.patch("dags.base._get_run_temporary_directory", return_value=tmp_path)
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_run_temporary_directory",
+        return_value=tmp_path,
+    )
     mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
     requests_mock.get(
         fake_organisation_csv_url, text=organisation_csv_fixture.open().readline()
