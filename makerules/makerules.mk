@@ -24,8 +24,6 @@ LC_COLLATE := C.UTF-8
 # current git branch
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
-all:: first-pass second-pass
-
 # initialise
 init::
 	pip install --upgrade pip

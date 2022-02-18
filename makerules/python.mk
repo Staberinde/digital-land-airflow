@@ -16,13 +16,13 @@ flake8:
 test:: test-unit test-integration test-e2e
 
 test-unit:
-	[ -d tests/unit ] && python -m pytest tests/unit --junitxml=.junitxml/unit.xml || true
+	[ -d digital_land_airflow/tests/unit ] && python -m pytest digital_land_airflow/tests/unit --junitxml=.junitxml/unit.xml || true
 
 test-integration:
-	[ -d tests/integration ] && python -m pytest tests/integration --junitxml=.junitxml/integration.xml
+	[ -d digital_land_airflow/tests/integration ] && python -m pytest digital_land_airflow/tests/integration --junitxml=.junitxml/integration.xml
 
 test-e2e:
-	[ -d tests/e2e ] && python -m pytest tests/e2e --junitxml=.junitxml/e2e.xml || true
+	[ -d digital_land_airflow/tests/e2e ] && python -m pytest digital_land_airflow/tests/e2e --junitxml=.junitxml/e2e.xml || true
 
 coverage:
 	coverage run --source $(PACKAGE) -m py.test && coverage report

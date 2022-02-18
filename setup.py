@@ -11,7 +11,6 @@ setup(
     author_email="DigitalLand@communities.gov.uk",
     license="MIT",
     url="https://github.com/digital-land/digital-land-airflow",
-    # TOOD move files into digital_land_airflow directory
     packages=find_namespace_packages(include=["digital_land_airflow*"]),
     include_package_data=True,
     install_requires=[
