@@ -16,5 +16,5 @@ RUN set -xe; \
 
 USER airflow
 
-COPY ./setup.py setup.py
-RUN pip install --upgrade .[test]
+COPY . /opt/airflow
+RUN pip install --upgrade .[test,digital_land,dev]
