@@ -1,4 +1,4 @@
-PACKAGE=dags.base
+PACKAGE=digital_land_airflow
 
 include makerules/makerules.mk
 include makerules/python.mk
