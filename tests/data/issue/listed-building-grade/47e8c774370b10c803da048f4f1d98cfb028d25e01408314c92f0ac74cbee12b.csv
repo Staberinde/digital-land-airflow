@@ -1,4 +1,4 @@
-row-number,field,issue-type,value
-1,entry-date,default,2021-11-22
-2,entry-date,default,2021-11-22
-3,entry-date,default,2021-11-22
+dataset,resource,line-number,entry-number,field,issue-type,value
+listed-building-grade,47e8c774370b10c803da048f4f1d98cfb028d25e01408314c92f0ac74cbee12b,2,1,entry-date,default,2021-11-22
+listed-building-grade,47e8c774370b10c803da048f4f1d98cfb028d25e01408314c92f0ac74cbee12b,3,2,entry-date,default,2021-11-22
+listed-building-grade,47e8c774370b10c803da048f4f1d98cfb028d25e01408314c92f0ac74cbee12b,4,3,entry-date,default,2021-11-22

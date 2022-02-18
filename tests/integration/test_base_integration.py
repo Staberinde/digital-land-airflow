@@ -264,7 +264,6 @@ def test_build_dataset(
     transformed_dir,
     # Test assertion directories
     data_dir,
-    expected_results_dir,
     # Function argument fixtures
     kwargs,
     # Pytest fixtures
@@ -273,14 +272,14 @@ def test_build_dataset(
     tmp_path,
 ):
     # Setup
-    test_expected_results_dir = expected_results_dir.joinpath("test_build_dataset")
 
     # Call
     callable_build_dataset_task(**kwargs)
 
     # Assert
     _assert_tree_identical(
-        tmp_path.joinpath("dataset"), test_expected_results_dir.joinpath("dataset")
+        tmp_path.joinpath("dataset"),
+        data_dir.joinpath("dataset"),
     )
 
 
@@ -297,7 +296,6 @@ def test_build_dataset_specified_resources(
     transformed_dir,
     # Test assertion directories
     data_dir,
-    expected_results_dir,
     # Function argument fixtures
     kwargs_specified_resources,
     # Pytest fixtures
@@ -306,7 +304,6 @@ def test_build_dataset_specified_resources(
     tmp_path,
 ):
     # Setup
-    test_expected_results_dir = expected_results_dir.joinpath("test_build_dataset")
 
     # Call
     callable_build_dataset_task(**kwargs_specified_resources)
@@ -314,6 +311,6 @@ def test_build_dataset_specified_resources(
     # Assert
     _assert_tree_identical(
         tmp_path.joinpath("dataset"),
-        test_expected_results_dir.joinpath("dataset"),
+        data_dir.joinpath("dataset"),
         only=kwargs_specified_resources["params"]["resource_hashes"],
     )
