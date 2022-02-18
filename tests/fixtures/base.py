@@ -221,4 +221,3 @@ def pipeline_dir(data_dir, tmp_path):
         dirs_exist_ok=True,
     )
     return pipeline_dir
-

@@ -140,7 +140,13 @@ def test_collect(collection_metadata_dir, endpoint_requests_mock, kwargs, tmp_pa
         assert mock._url in [log["endpoint-url"] for log in all_logs]
 
 
-def test_collection(collection_resources_dir, collection_metadata_dir, collection_payload_dir, kwargs, tmp_path):
+def test_collection(
+    collection_resources_dir,
+    collection_metadata_dir,
+    collection_payload_dir,
+    kwargs,
+    tmp_path,
+):
     # Setup
     tmp_path.joinpath("pipeline").mkdir()
 
@@ -201,7 +207,6 @@ def test_dataset(
         transformed_dir, test_expected_results_dir.joinpath("transformed")
     )
 
-
     _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
 
 
@@ -242,7 +247,6 @@ def test_dataset_specified_resources(
         test_expected_results_dir.joinpath("transformed"),
         only=kwargs_specified_resources["params"]["resource_hashes"],
     )
-
 
     _assert_tree_identical(
         issue_dir,

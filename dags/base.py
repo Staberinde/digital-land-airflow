@@ -389,8 +389,12 @@ def callable_push_s3_task(**kwargs):
     for pipeline_name in pipeline_resource_mapping.keys():
         directories_to_push = [
             (
-                local_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
-                destination_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
+                local_directory_path.format(
+                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                ),
+                destination_directory_path.format(
+                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                ),
             )
             for local_directory_path, destination_directory_path in kwargs[
                 "directories_to_push"
@@ -399,7 +403,9 @@ def callable_push_s3_task(**kwargs):
         files_to_push = [
             (
                 local_file_paths,
-                destination_directory_path.format(dataset_name=dataset_name, pipeline_name=pipeline_name),
+                destination_directory_path.format(
+                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                ),
             )
             for local_file_paths, destination_directory_path in kwargs["files_to_push"]
         ]
@@ -548,7 +554,10 @@ for dataset_name in get_all_dataset_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("transformed/{pipeline_name}", "{dataset_name}/transformed/{pipeline_name}"),
+                    (
+                        "transformed/{pipeline_name}",
+                        "{dataset_name}/transformed/{pipeline_name}",
+                    ),
                     ("issue/{pipeline_name}", "{dataset_name}/issue/{pipeline_name}"),
                     ("dataset", "{dataset_name}/dataset"),
                 ],

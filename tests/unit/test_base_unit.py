@@ -185,7 +185,7 @@ def test_push_s3_collection(
                 f"listed-building/collection/{path.name}",
             )
             for path in sorted(collection_metadata_dir.iterdir())
-            if path.name not in ["resource", "collection.csv",  "log"]
+            if path.name not in ["resource", "collection.csv", "log"]
         ]
     )
 
