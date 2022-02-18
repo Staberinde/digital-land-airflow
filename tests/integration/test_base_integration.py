@@ -181,7 +181,6 @@ def test_dataset(
     collection_resources_file,
     # Test assertion directories
     data_dir,
-    expected_results_dir,
     # Function argument fixtures
     kwargs,
     # Pytest fixtures
@@ -190,8 +189,6 @@ def test_dataset(
     tmp_path,
 ):
     # Setup
-    test_expected_results_dir = expected_results_dir.joinpath("test_dataset")
-
     transformed_dir = tmp_path.joinpath("transformed")
     issue_dir = tmp_path.joinpath("issue")
 
@@ -204,10 +201,10 @@ def test_dataset(
 
     # Assert
     _assert_tree_identical(
-        transformed_dir, test_expected_results_dir.joinpath("transformed")
+        transformed_dir, data_dir.joinpath("transformed")
     )
 
-    _assert_tree_identical(issue_dir, test_expected_results_dir.joinpath("issue"))
+    _assert_tree_identical(issue_dir, data_dir.joinpath("issue"))
 
 
 def test_dataset_specified_resources(
@@ -220,7 +217,6 @@ def test_dataset_specified_resources(
     collection_resources_file,
     # Test assertion directories
     data_dir,
-    expected_results_dir,
     # Function argument fixtures
     kwargs_specified_resources,
     # Pytest fixtures
@@ -229,8 +225,6 @@ def test_dataset_specified_resources(
     tmp_path,
 ):
     # Setup
-    test_expected_results_dir = expected_results_dir.joinpath("test_dataset")
-
     transformed_dir = tmp_path.joinpath("transformed")
     issue_dir = tmp_path.joinpath("issue")
 
@@ -244,13 +238,13 @@ def test_dataset_specified_resources(
     # Assert
     _assert_tree_identical(
         transformed_dir,
-        test_expected_results_dir.joinpath("transformed"),
+        data_dir.joinpath("transformed"),
         only=kwargs_specified_resources["params"]["resource_hashes"],
     )
 
     _assert_tree_identical(
         issue_dir,
-        test_expected_results_dir.joinpath("issue"),
+        data_dir.joinpath("issue"),
         kwargs_specified_resources["params"]["resource_hashes"],
     )
 

@@ -1,0 +1,2 @@
+{"elapsed":"0.003","endpoint-url":"https://historicengland.org.uk/content/data-downloads-gis/listed-buildings/","entry-date":"2022-01-27T17:23:45.002387","request-headers":{"Accept":"*/*","Accept-Encoding":"gzip, deflate","Connection":"keep-alive","User-Agent":"DLUHC Digital Land"},"resource":"7f566929632eeef62befec2d19a9263d13c129a932bd392ca9c0904a9307883c","response-headers":{},"ssl-verify":true,"status":"200"}
+// TODO This has no endpoint in resource.csv. Delete?

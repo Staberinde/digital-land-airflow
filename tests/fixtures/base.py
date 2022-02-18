@@ -138,11 +138,6 @@ def endpoint_requests_mock(requests_mock, collection_metadata_dir):
 
 
 @pytest.fixture
-def expected_results_dir(data_dir):
-    return data_dir.joinpath("expected_results")
-
-
-@pytest.fixture
 def organisation_csv_url(requests_mock, data_dir):
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
 
