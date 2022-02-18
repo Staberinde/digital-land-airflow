@@ -269,7 +269,7 @@ def callable_dataset_task(**kwargs):
     assert len(resource_pipeline_mapping) > 0
     for resource_hash, dataset_names in resource_pipeline_mapping.items():
         for dataset_name in dataset_names:
-
+            save_harmonised = "brownfield-land" in dataset_name
             api = _get_api_instance(kwargs, dataset_name=dataset_name)
             issue_dir = collection_repository_path.joinpath("issue").joinpath(
                 dataset_name
@@ -278,9 +278,10 @@ def callable_dataset_task(**kwargs):
             collection_repository_path.joinpath("transformed").joinpath(
                 dataset_name
             ).mkdir(exist_ok=True, parents=True)
-            collection_repository_path.joinpath("harmonised").joinpath(
-                dataset_name
-            ).mkdir(exist_ok=True, parents=True)
+            if save_harmonised:
+                collection_repository_path.joinpath("harmonised").joinpath(
+                    dataset_name
+                ).mkdir(exist_ok=True, parents=True)
 
             # This is hard coded relative path in digital-land-python
             column_field_dir = collection_repository_path.joinpath(
@@ -300,7 +301,7 @@ def callable_dataset_task(**kwargs):
                 "issue_dir": issue_dir,
                 "organisation_path": organisation_csv_path,
                 # TODO Figure out a way to do this without hardcoding, maybe introspect collection filesystem?
-                "save_harmonised": "brownfield-land" in dataset_name,
+                "save_harmonised": save_harmonised,
                 "column_field_dir": str(column_field_dir),
             }
             log_string = (

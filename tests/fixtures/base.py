@@ -143,18 +143,21 @@ def expected_results_dir(data_dir):
 
 
 @pytest.fixture
-def kwargs(mocker, tmp_path):
-    def _xcom_pull_return(key):
-        if key == "collection_repository_path":
-            return tmp_path
-        else:
-            raise DigitalLandAirflowTestSetupException(
-                f"I don't yet know what to do with xcom_pull arg {key}"
-            )
+def organisation_csv_url(requests_mock, data_dir):
+    fake_organisation_csv_url = "https://iamanorganisationcsvurl"
 
+    organisation_csv_fixture = data_dir.joinpath("organisation.csv")
+    requests_mock.get(
+        fake_organisation_csv_url, text=organisation_csv_fixture.open().readline()
+    )
+    return fake_organisation_csv_url
+
+
+@pytest.fixture(autouse=True)
+def airflow_variable(mocker, organisation_csv_url):
     def _variable_return(key):
         if key == "organisation_csv_url":
-            return os.environ["ORGANISATION_CSV_URL"]
+            return organisation_csv_url
         elif key == "temp_directory_root":
             return os.environ["TEMP_DIRECTORY_ROOT"]
         else:
@@ -163,6 +166,18 @@ def kwargs(mocker, tmp_path):
             )
 
     mocker.patch("airflow.models.Variable.get", side_effect=_variable_return)
+
+
+@pytest.fixture
+def kwargs(tmp_path):
+    def _xcom_pull_return(key):
+        if key == "collection_repository_path":
+            return tmp_path
+        else:
+            raise DigitalLandAirflowTestSetupException(
+                f"I don't yet know what to do with xcom_pull arg {key}"
+            )
+
     return {
         "ti": Mock(**{"xcom_pull.side_effect": _xcom_pull_return}),
         "dag": Mock(**{"_dag_id": "listed-building"}),
