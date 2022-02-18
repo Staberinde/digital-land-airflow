@@ -5,20 +5,8 @@ ifeq ($(REPOSITORY),)
 REPOSITORY=$(shell basename -s .git `git config --get remote.origin.url`)
 endif
 
-define dataset_url
-'https://collection-dataset.s3.eu-west-2.amazonaws.com/$(2)-collection/dataset/$(1).sqlite3'
-endef
-
 .PHONY: \
-	makerules\
-	specification\
-	init\
-	first-pass\
-	second-pass\
-	clobber\
-	clean\
-	commit-makerules\
-	prune
+	init
 
 # keep intermediate files
 .SECONDARY:
@@ -37,13 +25,6 @@ LC_COLLATE := C.UTF-8
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 all:: first-pass second-pass
-
-first-pass::
-	@:
-
-# restart the make process to pick-up collected files
-second-pass::
-	@:
 
 # initialise
 init::
