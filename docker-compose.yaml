@@ -252,6 +252,7 @@ services:
     user: "0:0"
     volumes:
       - .:/sources
+      - airflow-logs-volume:/opt/airflow/logs
 
   airflow-cli:
     <<: *airflow-common

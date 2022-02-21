@@ -286,11 +286,15 @@ def callable_dataset_task(**kwargs):
                     dataset_name
                 ).mkdir(exist_ok=True, parents=True)
 
-            # This is hard coded relative path in digital-land-python
+            # These are hard coded relative paths in digital-land-python
             column_field_dir = collection_repository_path.joinpath(
                 "var/column-field/"
             ).joinpath(dataset_name)
             column_field_dir.mkdir(exist_ok=True, parents=True)
+            dataset_resource_dir = collection_repository_path.joinpath(
+                "var/dataset-resource"
+            ).joinpath(dataset_name)
+            dataset_resource_dir.mkdir(exist_ok=True, parents=True)
             # Most digital_land.API() commands expect strings not pathlib.Path
             pipeline_cmd_args = {
                 "input_path": str(resource_dir.joinpath(resource_hash)),
@@ -306,12 +310,15 @@ def callable_dataset_task(**kwargs):
                 # TODO Figure out a way to do this without hardcoding, maybe introspect collection filesystem?
                 "save_harmonised": save_harmonised,
                 "column_field_dir": str(column_field_dir),
+                "dataset_resource_dir": str(dataset_resource_dir),
             }
             log_string = (
                 f"digital-land --pipeline-name {dataset_name} pipeline "
                 f"--issue-dir {pipeline_cmd_args['issue_dir']} "
                 f" {pipeline_cmd_args['input_path']} {pipeline_cmd_args['output_path']} "
                 f"--organisation-path {pipeline_cmd_args['organisation_path']} "
+                f"--column_field_dir {pipeline_cmd_args['column_field_dir']} "
+                f"--dataset_resource_dir {pipeline_cmd_args['dataset_resource_dir']} "
             )
             if pipeline_cmd_args["null_path"]:
                 log_string += f" --null-path {pipeline_cmd_args['null_path']}"
@@ -582,9 +589,10 @@ for dataset_name in get_all_dataset_names():
         commit_collection >> dataset
         push_s3_collection >> dataset
         dataset >> build_dataset
-        build_dataset >> commit_harmonised
+        # TODO parameterize this to be conditional
+        #  build_dataset >> commit_harmonised
         build_dataset >> push_s3_dataset
-        commit_harmonised >> working_directory_cleanup
+        #  commit_harmonised >> working_directory_cleanup
         push_s3_dataset >> working_directory_cleanup
 
         # Airflow likes to be able to find its DAG's as module scoped variables

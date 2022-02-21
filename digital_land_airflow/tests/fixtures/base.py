@@ -206,6 +206,18 @@ def column_field_dir(data_dir, tmp_path):
 
 
 @pytest.fixture
+def dataset_resource_dir(data_dir, tmp_path):
+    column_field_dir = tmp_path.joinpath("var").joinpath("dataset-resource")
+    copytree(
+        data_dir.joinpath("var").joinpath("dataset-resource"),
+        column_field_dir,
+        dirs_exist_ok=True,
+    )
+    return column_field_dir
+
+
+
+@pytest.fixture
 def pipeline_dir(data_dir, tmp_path):
     pipeline_dir = tmp_path.joinpath("pipeline")
     copytree(
