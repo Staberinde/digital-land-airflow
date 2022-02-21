@@ -261,6 +261,8 @@ def callable_commit_task(**kwargs):
 
 
 def callable_dataset_task(**kwargs):
+    collection_name = _get_collection_name(kwargs)
+    save_harmonised = is_run_harmonised_stage(collection_name)
     api = _get_api_instance(kwargs)
     collection_repository_path = _get_collection_repository_path(kwargs)
 
@@ -272,7 +274,6 @@ def callable_dataset_task(**kwargs):
     assert len(resource_pipeline_mapping) > 0
     for resource_hash, dataset_names in resource_pipeline_mapping.items():
         for dataset_name in dataset_names:
-            save_harmonised = "brownfield-land" in dataset_name
             api = _get_api_instance(kwargs, dataset_name=dataset_name)
             issue_dir = collection_repository_path.joinpath("issue").joinpath(
                 dataset_name
@@ -457,7 +458,7 @@ def kebab_to_pascal_case(kebab_case_str):
     return pascalize(kebab_case_str.replace("-", "_"))
 
 
-def get_all_dataset_names():
+def get_all_collection_names():
     return [
         collection["collection"]
         for collection in DictReader(
@@ -466,9 +467,13 @@ def get_all_dataset_names():
     ]
 
 
-for dataset_name in get_all_dataset_names():
+def is_run_harmonised_stage(collection_name):
+    return "brownfield-land" in collection_name
+
+
+for collection_name in get_all_collection_names():
     with DAG(
-        dataset_name,
+        collection_name,
         start_date=datetime.now(),
         timetable=CronDataIntervalTimetable(
             _get_dag_cronstring(), timezone=timezone("Europe/London")
@@ -525,11 +530,6 @@ for dataset_name in get_all_dataset_names():
             op_kwargs={
                 "paths_to_commit": ["collection/log.csv", "collection/resource.csv"]
             },
-        )
-        commit_harmonised = PythonOperator(
-            task_id="commit_harmonised",
-            python_callable=callable_commit_task,
-            op_kwargs={"paths_to_commit": ["harmonised"]},
         )
         push_s3_collection = PythonOperator(
             task_id="push_s3_collection",
@@ -589,11 +589,17 @@ for dataset_name in get_all_dataset_names():
         commit_collection >> dataset
         push_s3_collection >> dataset
         dataset >> build_dataset
-        # TODO parameterize this to be conditional
-        #  build_dataset >> commit_harmonised
         build_dataset >> push_s3_dataset
-        #  commit_harmonised >> working_directory_cleanup
         push_s3_dataset >> working_directory_cleanup
 
+        if is_run_harmonised_stage(collection_name):
+            commit_harmonised = PythonOperator(
+                task_id="commit_harmonised",
+                python_callable=callable_commit_task,
+                op_kwargs={"paths_to_commit": ["harmonised"]},
+            )
+            build_dataset >> commit_harmonised
+            commit_harmonised >> working_directory_cleanup
+
         # Airflow likes to be able to find its DAG's as module scoped variables
-        globals()[f"{kebab_to_pascal_case(dataset_name)}Dag"] = InstantiatedDag
+        globals()[f"{kebab_to_pascal_case(collection_name)}Dag"] = InstantiatedDag

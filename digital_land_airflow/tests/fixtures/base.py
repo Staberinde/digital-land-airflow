@@ -216,7 +216,6 @@ def dataset_resource_dir(data_dir, tmp_path):
     return column_field_dir
 
 
-
 @pytest.fixture
 def pipeline_dir(data_dir, tmp_path):
     pipeline_dir = tmp_path.joinpath("pipeline")
