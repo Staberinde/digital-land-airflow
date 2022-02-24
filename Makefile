@@ -2,6 +2,7 @@ PACKAGE=digital_land_airflow
 
 include makerules/makerules.mk
 include makerules/python.mk
+include makerules/docker.mk
 
 GDAL := $(shell command -v ogr2ogr 2> /dev/null)
 SQLDIFF := $(shell command -v sqldiff 2> /dev/null)

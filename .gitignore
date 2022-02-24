@@ -8,3 +8,5 @@ pyrightconfig.json
 digital_land_airflow.egg-info/
 
 .junitxml
+
+docker-compose.override.yaml

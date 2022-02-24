@@ -1,0 +1,32 @@
+name: Build and deploy airflow DAG docker image
+on:
+  # We run this on a cron schedule as we don't have a way of triggering on
+  # digital-land-python updates now
+  # We time the cron to run an hour before the collectors are scheduled
+  schedule:
+  - cron: 0 23 * * *
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_PUBLIC_ECR_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_PUBLIC_ECR_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+    - name: Build & Deploy
+      run: |
+        make docker-build
+        make docker-test
+        make docker-push
