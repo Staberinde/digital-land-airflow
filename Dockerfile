@@ -23,3 +23,7 @@ USER airflow
 
 COPY . /opt/airflow
 RUN pip install --upgrade .[test,digital_land,dev]
+
+ARG ORGANISATION_CSV_URL=https://raw.githubusercontent.com/digital-land/organisation-dataset/main/collection/organisation.csv
+RUN curl ${ORGANISATION_CSV_URL} > /static-files/organisation.csv
+ENV ORGANISATION_CSV_PATH /static-files/organisation.csv

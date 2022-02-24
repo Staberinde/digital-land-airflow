@@ -1,3 +1,4 @@
+from shutil import copy
 from unittest.mock import call, Mock, MagicMock
 
 from digital_land_airflow.dags.base import (
@@ -202,11 +203,15 @@ def test_push_s3_collection(
     )
 
 
-def test_get_organisation_csv(kwargs, data_dir, mocker, requests_mock, tmp_path):
+def test_get_organisation_csv_no_env_var(
+    kwargs, data_dir, mocker, requests_mock, tmp_path
+):
     # TODO try and get this test to use existing `organisation_csv_url` fixture in a nice way
     # Setup
     organisation_csv_fixture = data_dir.joinpath("organisation.csv")
+    expected_path = tmp_path.joinpath("organisation.csv")
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
+    mocker.patch.dict("os.environ", {}, clear=True)
     mocker.patch(
         "digital_land_airflow.dags.base._get_run_temporary_directory",
         return_value=tmp_path,
@@ -215,7 +220,38 @@ def test_get_organisation_csv(kwargs, data_dir, mocker, requests_mock, tmp_path)
     requests_mock.get(
         fake_organisation_csv_url, text=organisation_csv_fixture.open().readline()
     )
-    expected_path = tmp_path.joinpath("organisation.csv")
+
+    # Call
+    response = _get_organisation_csv(kwargs)
+    # Assert
+
+    assert response == expected_path
+    with expected_path.open() as f:
+        actual_content = f.readline()
+    with organisation_csv_fixture.open() as f:
+        expected_content = f.readline()
+    assert actual_content == expected_content
+
+
+def test_get_organisation_csv_env_var(
+    kwargs, data_dir, mocker, requests_mock, tmp_path
+):
+    # TODO try and get this test to use existing `organisation_csv_url` fixture in a nice way
+    # Setup
+    organisation_csv_fixture = data_dir.joinpath("organisation.csv")
+    expected_path = tmp_path.joinpath("totallynotorganisation.csv")
+    expected_path.touch()
+    copy(organisation_csv_fixture, expected_path)
+    fake_organisation_csv_url = "https://iamanorganisationcsvurl"
+    mocker.patch.dict("os.environ", {"ORGANISATION_CSV_PATH": str(expected_path)})
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_run_temporary_directory",
+        return_value=tmp_path,
+    )
+    mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
+    requests_mock.get(
+        fake_organisation_csv_url, text=organisation_csv_fixture.open().readline()
+    )
 
     # Call
     response = _get_organisation_csv(kwargs)

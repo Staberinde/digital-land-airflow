@@ -145,10 +145,18 @@ def _upload_files_to_s3(files, destination):
 
 
 def _get_organisation_csv(kwargs):
+    if (
+        "ORGANISATION_CSV_PATH" in os.environ
+        and Path(os.environ["ORGANISATION_CSV_PATH"]).exists()
+    ):
+        return Path(os.environ["ORGANISATION_CSV_PATH"])
     directory = _get_run_temporary_directory(kwargs)
     directory.mkdir(exist_ok=True)
     path = directory.joinpath("organisation.csv")
     organisation_csv_url = Variable.get("organisation_csv_url")
+    logging.info(
+        f"Fetching organisation.csv from {organisation_csv_url}, saving to ${path}"
+    )
     response = requests.get(organisation_csv_url)
     response.raise_for_status()
     with open(path, "w+") as file:
@@ -386,9 +394,9 @@ def callable_build_dataset_task(**kwargs):
 def callable_push_s3_task(**kwargs):
     dataset_name = _get_collection_name(kwargs)
     environment = _get_environment()
-    if environment != "production":
+    if environment not in ["production", "staging"]:
         raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
+            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production' or 'staging'"
         )
     if kwargs.get("params", {}).get("git_ref", "HEAD") != "HEAD":
         raise AirflowSkipException(
