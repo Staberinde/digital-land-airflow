@@ -45,22 +45,29 @@ class GithubOrgAuthorizer(AirflowSecurityManager):
         #   so now we can query the user and orgs endpoints for their data.
         # Username and org membership are added to the payload and returned to FAB.
 
-        remote_app = self.appbuilder.sm.oauth_remotes[provider]
-        me = remote_app.get("user")
-        user_data = me.json()
-        org_data = remote_app.get("user/orgs")
-        orgs = org_parser(org_data.json())
-        roles = map_roles(orgs)
-        name_list = user_data.get("name", "").split(" ")
-        log.debug(
-            f"User info from Github: {user_data}\n"
-            f"Org info from Github: {orgs}\n"
-            f"Org ID granting access {ORG_ID_FROM_GITHUB}"
-        )
-        return {
-            "username": "github_" + user_data.get("login"),
-            "first_name": name_list[0],
-            "last_name": name_list[-1],
-            "role_keys": roles,
-            "email": user_data.get("email"),
-        }
+        try:
+            remote_app = self.appbuilder.sm.oauth_remotes[provider]
+            me = remote_app.get("user")
+            user_data = me.json()
+            org_data = remote_app.get("user/orgs")
+            orgs = org_parser(org_data.json())
+            roles = map_roles(orgs)
+            name_list = user_data.get("name", "").split(" ")
+            log.debug(
+                f"User info from Github: {user_data}\n"
+                f"Org info from Github: {orgs}\n"
+                f"Org ID granting access {ORG_ID_FROM_GITHUB}"
+            )
+            return {
+                "username": "github_" + user_data.get("login"),
+                "first_name": name_list[0],
+                "last_name": name_list[-1],
+                "role_keys": roles,
+                "email": user_data.get("email"),
+            }
+        except Exception:
+            log.exception(
+                "Exception in processing oauth user info, defaulting to public role",
+                exc_info=True,
+            )
+            return {"username": "Anonymous", "role_keys": [FAB_PUBLIC_ROLE]}
