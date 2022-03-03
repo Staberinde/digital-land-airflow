@@ -73,11 +73,13 @@ x-airflow-common:
     PIPELINE_RUN_CRON_STRING: ${PIPELINE_RUN_CRON_STRING}
     # Digital land Environment Variables
     ENVIRONMENT: ${ENVIRONMENT}
+    GITHUB_ORG_ID: ${GITHUB_ORG_ID}
+    OAUTH_APP_ID: ${OAUTH_APP_ID}
+    OAUTH_APP_SECRET: ${OAUTH_APP_SECRET}
   volumes:
     - ./digital_land_airflow/dags:/opt/airflow/dags:ro
     - airflow-logs-volume:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins:ro
-    - ~/.netrc:/home/airflow/.netrc:ro # TODO is this the best strategy for auth when pushing?
   depends_on:
     &airflow-common-depends-on
     redis:
