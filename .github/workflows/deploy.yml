@@ -30,3 +30,4 @@ jobs:
         make docker-build
         make docker-test
         make docker-push
+        make ENVIRONMENT=staging helm-deploy
