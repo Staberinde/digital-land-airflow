@@ -320,6 +320,7 @@ def callable_dataset_task(**kwargs):
                 "save_harmonised": save_harmonised,
                 "column_field_dir": str(column_field_dir),
                 "dataset_resource_dir": str(dataset_resource_dir),
+                "custom_temp_dir": str(_get_temporary_directory())
             }
             log_string = (
                 f"digital-land --pipeline-name {dataset_name} pipeline "
