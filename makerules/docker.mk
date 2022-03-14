@@ -2,7 +2,8 @@ include makerules/makerules.mk
 
 # TODO add this ECR repository to terraform
 BUILD_REPO := public.ecr.aws/l6z6v3j6
-BUILD_TAG := $(BUILD_REPO)/digital-land-airflow:latest
+GIT_COMMIT := $(shell git show -s --format=%h)
+BUILD_TAG := $(BUILD_REPO)/digital-land-airflow:$(GIT_COMMIT)
 
 # We are baking resources (to be declarative) into the image so we don't want them cached
 docker-build: docker-check
@@ -22,3 +23,19 @@ ifeq (, $(shell which docker))
 	$(error "No docker in $(PATH), consider doing apt-get install docker OR brew install --cask docker")
 endif
 
+helm-check:
+ifeq (, $(shell which helm))
+	$(error "No helm in $(PATH), consider following apt install instructions https://helm.sh/docs/intro/install/#from-apt-debianubuntu OR snap install --classic helm OR brew install --cask helm")
+endif
+ifeq (, $(ENVIRONMENT))
+	$(error "No environment specified via $$ENVIRONMENT, please pass as make argument")
+endif
+
+helm-login: helm-check
+	aws eks update-kubeconfig --region eu-west-2 --name $(ENVIRONMENT)-pipelines-airflow
+	# aws eks update-kubeconfig --region eu-west-2 --name $(ENVIRONMENT)-pipelines-airflow --role-arn arn:aws:iam::955696714113:role/staging-eks-pipeline-node-group-role
+
+helm-deploy: helm-login
+	helm repo add apache-airflow https://airflow.apache.org/
+	helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config
+	# aws eks get-token --cluster-name staging-pipelines-airflow | jq '. | .status.token' | xargs -I {} helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config --kube-token {}
