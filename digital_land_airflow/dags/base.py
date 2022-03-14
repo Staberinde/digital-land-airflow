@@ -239,8 +239,12 @@ def callable_commit_task(**kwargs):
         raise AirflowSkipException(
             "Doing nothing as params['specified_resources'] is set"
         )
-    paths_to_commit = kwargs["paths_to_commit"]
     environment = _get_environment()
+    if environment != "production":
+        raise AirflowSkipException(
+            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
+        )
+    paths_to_commit = kwargs["paths_to_commit"]
     collection_repository_path = _get_collection_repository_path(kwargs)
     repo = Repo(collection_repository_path)
 
@@ -258,10 +262,6 @@ def callable_commit_task(**kwargs):
     logging.info(f"Creating commit {commit_message}")
     repo.index.commit(commit_message)
 
-    if environment != "production":
-        raise AirflowSkipException(
-            f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
-        )
     upstream_urls = list(repo.remotes["origin"].urls)
     assert len(upstream_urls) == 1, upstream_urls
     repo.remotes["origin"].push()
