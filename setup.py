@@ -38,7 +38,7 @@ setup(
     setup_requires=["pytest-runner"],
     extras_require={
         "digital_land": [
-            "digital-land@git+https://github.com/digital-land/digital-land-python",
+            "digital-land@git+https://github.com/digital-land/digital-land-python@airflow-compatibility",
         ],
         "test": [
             "black",

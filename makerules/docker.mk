@@ -21,3 +21,4 @@ docker-check:
 ifeq (, $(shell which docker))
 	$(error "No docker in $(PATH), consider doing apt-get install docker OR brew install --cask docker")
 endif
+
