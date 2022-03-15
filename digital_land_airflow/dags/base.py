@@ -393,7 +393,7 @@ def callable_build_dataset_task(**kwargs):
 
 
 def callable_push_s3_task(**kwargs):
-    dataset_name = _get_collection_name(kwargs)
+    repo_name = _get_repo_name(kwargs)
     environment = _get_environment()
     if environment not in ["production", "staging"]:
         raise AirflowSkipException(
@@ -410,10 +410,10 @@ def callable_push_s3_task(**kwargs):
         directories_to_push = [
             (
                 local_directory_path.format(
-                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                    repo_name=repo_name, pipeline_name=pipeline_name
                 ),
                 destination_directory_path.format(
-                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                    repo_name=repo_name, pipeline_name=pipeline_name
                 ),
             )
             for local_directory_path, destination_directory_path in kwargs[
@@ -424,7 +424,7 @@ def callable_push_s3_task(**kwargs):
             (
                 local_file_paths,
                 destination_directory_path.format(
-                    dataset_name=dataset_name, pipeline_name=pipeline_name
+                    repo_name=repo_name, pipeline_name=pipeline_name
                 ),
             )
             for local_file_paths, destination_directory_path in kwargs["files_to_push"]
@@ -545,7 +545,7 @@ for collection_name in get_all_collection_names():
             python_callable=callable_push_s3_task,
             op_kwargs={
                 "directories_to_push": [
-                    ("collection/resource", "{dataset_name}/collection/resource"),
+                    ("collection/resource", "{repo_name}/collection/resource"),
                 ],
                 "files_to_push": [
                     (
@@ -555,7 +555,7 @@ for collection_name in get_all_collection_names():
                             "collection/resource.csv",
                             "collection/source.csv",
                         ],
-                        "{dataset_name}/collection",
+                        "{repo_name}/collection",
                     ),
                 ],
             },
@@ -575,10 +575,10 @@ for collection_name in get_all_collection_names():
                 "directories_to_push": [
                     (
                         "transformed/{pipeline_name}",
-                        "{dataset_name}/transformed/{pipeline_name}",
+                        "{repo_name}/transformed/{pipeline_name}",
                     ),
-                    ("issue/{pipeline_name}", "{dataset_name}/issue/{pipeline_name}"),
-                    ("dataset", "{dataset_name}/dataset"),
+                    ("issue/{pipeline_name}", "{repo_name}/issue/{pipeline_name}"),
+                    ("dataset", "{repo_name}/dataset"),
                 ],
                 "files_to_push": [],
             },

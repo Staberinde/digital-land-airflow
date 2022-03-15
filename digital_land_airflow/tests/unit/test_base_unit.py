@@ -91,13 +91,13 @@ def test_push_s3_dataset(
     tmp_path,
 ):
     #  Setup
-    dataset_name = "listed-building"
+    expected_repo_name = "listed-building-collection"
     #  tmp_path.joinpath("pipeline").mkdir()
 
     kwargs["directories_to_push"] = [
-        ("transformed/{pipeline_name}", "{dataset_name}/transformed/{pipeline_name}"),
-        ("issue/{pipeline_name}", "{dataset_name}/issue/{pipeline_name}"),
-        ("dataset", "{dataset_name}/dataset"),
+        ("transformed/{pipeline_name}", "{repo_name}/transformed/{pipeline_name}"),
+        ("issue/{pipeline_name}", "{repo_name}/issue/{pipeline_name}"),
+        ("dataset", "{repo_name}/dataset"),
     ]
     kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
@@ -116,7 +116,7 @@ def test_push_s3_dataset(
                 call.upload_file(
                     str(path),
                     "iamacollections3bucket",
-                    f"{dataset_name}/transformed/{collection_dir.name}/{path.name}",
+                    f"{expected_repo_name}/transformed/{collection_dir.name}/{path.name}",
                 )
                 for path in collection_dir.iterdir()
             ]
@@ -127,7 +127,7 @@ def test_push_s3_dataset(
                 call.upload_file(
                     str(path),
                     "iamacollections3bucket",
-                    f"{dataset_name}/issue/{collection_dir.name}/{path.name}",
+                    f"{expected_repo_name}/issue/{collection_dir.name}/{path.name}",
                 )
                 for path in collection_dir.iterdir()
             ]
@@ -137,7 +137,7 @@ def test_push_s3_dataset(
             call.upload_file(
                 str(path),
                 "iamacollections3bucket",
-                f"{dataset_name}/dataset/{path.name}",
+                f"{expected_repo_name}/dataset/{path.name}",
             )
             for path in dataset_dir.iterdir()
         ]
@@ -154,9 +154,10 @@ def test_push_s3_collection(
     tmp_path,
 ):
     #  Setup
+    expected_repo_name = "listed-building-collection"
     #  tmp_path.joinpath("pipeline").mkdir()
     kwargs["directories_to_push"] = [
-        ("collection/resource", "{dataset_name}/collection/resource"),
+        ("collection/resource", "{repo_name}/collection/resource"),
     ]
     kwargs["files_to_push"] = [
         (
@@ -166,7 +167,7 @@ def test_push_s3_collection(
                 "collection/resource.csv",
                 "collection/source.csv",
             ],
-            "{dataset_name}/collection",
+            "{repo_name}/collection",
         ),
     ]
     mock_s3_client = MagicMock()
@@ -185,7 +186,7 @@ def test_push_s3_collection(
             call.upload_file(
                 str(path),
                 "iamacollections3bucket",
-                f"listed-building/collection/resource/{path.name}",
+                f"{expected_repo_name}/collection/resource/{path.name}",
             )
             for path in collection_resources_dir.iterdir()
         ]
@@ -195,7 +196,7 @@ def test_push_s3_collection(
             call.upload_file(
                 str(path),
                 "iamacollections3bucket",
-                f"listed-building/collection/{path.name}",
+                f"{expected_repo_name}/collection/{path.name}",
             )
             for path in sorted(collection_metadata_dir.iterdir())
             if path.name not in ["resource", "collection.csv", "log"]
