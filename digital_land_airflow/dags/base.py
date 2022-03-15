@@ -21,6 +21,9 @@ from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
 
 
+DATE_DEPLOYED_ON_STAGING = datetime(2022, 3, 11, 0, 0, tzinfo=timezone("Europe/London"))
+
+
 class ResourceNotFound(Exception):
     """Raised if explicitly specified resource cannot be found in resources/"""
 
@@ -483,7 +486,7 @@ def is_run_harmonised_stage(collection_name):
 for collection_name in get_all_collection_names():
     with DAG(
         collection_name,
-        start_date=datetime.now(),
+        start_date=DATE_DEPLOYED_ON_STAGING,
         timetable=CronDataIntervalTimetable(
             _get_dag_cronstring(), timezone=timezone("Europe/London")
         ),
