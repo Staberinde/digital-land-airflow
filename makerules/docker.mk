@@ -2,7 +2,7 @@ include makerules/makerules.mk
 
 # TODO add this ECR repository to terraform
 BUILD_REPO := public.ecr.aws/l6z6v3j6
-GIT_COMMIT := $(shell git show -s --format=%h)
+GIT_COMMIT := $(shell git show -s --format=%H)
 BUILD_TAG := $(BUILD_REPO)/digital-land-airflow:$(GIT_COMMIT)
 
 # We are baking resources (to be declarative) into the image so we don't want them cached
