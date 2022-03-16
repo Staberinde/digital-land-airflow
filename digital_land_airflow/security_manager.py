@@ -11,7 +11,7 @@ log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
 FAB_ADMIN_ROLE = "Admin"
 FAB_VIEWER_ROLE = "Viewer"
 FAB_PUBLIC_ROLE = "Public"  # The "Public" role is given no permissions
-ORG_ID_FROM_GITHUB = int(os.getenv("GITHUB_ORG_ID"))
+ORG_ID_FROM_GITHUB = os.getenv("GITHUB_ORG_ID")
 
 
 def org_parser(org_payload: Dict[str, Any]) -> List[int]:
@@ -23,8 +23,10 @@ def map_roles(org_list: List[int]) -> List[str]:
     # Associate the org IDs with Roles here.
     # The expected output is a list of roles that FAB will use to Authorize the user.
 
+    if not ORG_ID_FROM_GITHUB:
+        raise Exception("Missing GITHUB_ORG_ID env var!")
     org_role_map = {
-        ORG_ID_FROM_GITHUB: FAB_ADMIN_ROLE,
+        int(ORG_ID_FROM_GITHUB): FAB_ADMIN_ROLE,
     }
     log.debug(f"org_role_map: {org_role_map}")
     return list(set(org_role_map.get(org, FAB_PUBLIC_ROLE) for org in org_list))
@@ -53,6 +55,15 @@ class GithubOrgAuthorizer(AirflowSecurityManager):
             orgs = org_parser(org_data.json())
             roles = map_roles(orgs)
             name_list = user_data.get("name", "").split(" ")
+            if len(name_list) >= 2:
+                first_name = name_list[0]
+                last_name = name_list[-1]
+            elif len(name_list) == 1:
+                first_name = name_list[0]
+                last_name = ""
+            else:
+                first_name = ""
+                last_name = ""
             log.debug(
                 f"User info from Github: {user_data}\n"
                 f"Org info from Github: {orgs}\n"
@@ -60,8 +71,8 @@ class GithubOrgAuthorizer(AirflowSecurityManager):
             )
             return {
                 "username": "github_" + user_data.get("login"),
-                "first_name": name_list[0],
-                "last_name": name_list[-1],
+                "first_name": first_name,
+                "last_name": last_name,
                 "role_keys": roles,
                 "email": user_data.get("email"),
             }

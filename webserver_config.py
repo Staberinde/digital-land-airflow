@@ -4,16 +4,18 @@ and adapted for organisations
 """
 import os
 
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_DB, AUTH_OAUTH
 
 
-AUTH_TYPE = AUTH_OAUTH
+if os.environ.get("OAUTH_APP_ID") and os.environ.get("OAUTH_APP_SECRET"):
+    AUTH_TYPE = AUTH_OAUTH
+    FAB_SECURITY_MANAGER_CLASS = "digital_land_airflow.security_manager.GithubOrgAuthorizer"
+else:
+    AUTH_TYPE = AUTH_DB
 AUTH_ROLES_SYNC_AT_LOGIN = True  # Checks roles on every login
 AUTH_USER_REGISTRATION = (
     True  # allow users who are not already in the FAB DB to register
 )
-
-FAB_SECURITY_MANAGER_CLASS = "digital_land_airflow.security_manager.GithubOrgAuthorizer"
 
 # Make sure to replace this with the path to your security manager class
 AUTH_ROLES_MAPPING = {

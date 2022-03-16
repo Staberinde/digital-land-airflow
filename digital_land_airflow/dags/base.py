@@ -38,6 +38,14 @@ def _get_dag_cronstring():
     return os.environ.get("PIPELINE_RUN_CRON_STRING")
 
 
+def _get_dag_start_date():
+    environment = _get_environment()
+    if environment == "staging":
+        return DATE_DEPLOYED_ON_STAGING
+    else:
+        return datetime.now()
+
+
 def _get_api_instance(kwargs, dataset_name=None):
     if not dataset_name:
         dataset_name = kwargs["dag"]._dag_id
@@ -486,10 +494,11 @@ def is_run_harmonised_stage(collection_name):
 for collection_name in get_all_collection_names():
     with DAG(
         collection_name,
-        start_date=DATE_DEPLOYED_ON_STAGING,
+        start_date=_get_dag_start_date(),
         timetable=CronDataIntervalTimetable(
             _get_dag_cronstring(), timezone=timezone("Europe/London")
         ),
+        catchup=False,
         render_template_as_native_obj=True,
         params={
             "git_ref": Param(
