@@ -1,9 +1,10 @@
 from csv import DictReader
 from datetime import date
 from difflib import diff_bytes, context_diff
-from deep_dircmp import DeepDirCmp
 from json import load
 from subprocess import run, CalledProcessError
+
+from deep_dircmp import DeepDirCmp
 
 from digital_land_airflow.dags.base import (
     callable_build_dataset_task,
