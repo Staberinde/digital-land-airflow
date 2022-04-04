@@ -180,6 +180,13 @@ def callable_clone_task(**kwargs):
     repo_name = _get_repo_name(kwargs)
     repo_path = _get_run_temporary_directory(kwargs).joinpath(repo_name)
 
+    # If we rerun a task within the same DAGrun, it will try an reuse the same path
+    # We can't really let it use the same repo state right now as it won't match other
+    # notions of state e.g. S3
+    if kwargs.get("params", {}).get("prev_attempted_tries", 1) > 1 and repo_path.exists():
+        logging.info(f"Removing existing directory on path {repo_path}")
+        rmtree(repo_path)
+
     repo_path.mkdir(parents=True)
     repo = Repo.clone_from(
         f"https://github.com/digital-land/{repo_name}", to_path=repo_path

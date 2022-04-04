@@ -1,4 +1,4 @@
-from shutil import copy
+from shutil import copy, rmtree
 from unittest.mock import call, Mock, MagicMock
 
 from digital_land_airflow.dags.base import (
@@ -18,6 +18,7 @@ def test_clone(kwargs, mocker, tmp_path):
         "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
+    mock_shutil_rmtree = mocker.patch("digital_land_airflow.dags.base.rmtree", side_effect=rmtree)
     assert not expected_path.exists()
     callable_clone_task(**kwargs)
     assert expected_path.exists()
@@ -25,6 +26,27 @@ def test_clone(kwargs, mocker, tmp_path):
         "https://github.com/digital-land/listed-building-collection",
         to_path=expected_path,
     )
+    mock_shutil_rmtree.assert_not_called()
+
+
+def test_clone_dir_exists(kwargs, mocker, tmp_path):
+    expected_path = tmp_path.joinpath(f"listed-building_{kwargs['run_id']}").joinpath(
+        "listed-building-collection"
+    )
+    expected_path.mkdir(parents=True)
+    kwargs["params"] = {"prev_attempted_tries": 2}
+    mocker.patch(
+        "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
+    )
+    mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
+    mock_shutil_rmtree = mocker.patch("digital_land_airflow.dags.base.rmtree", side_effect=rmtree)
+    callable_clone_task(**kwargs)
+    assert expected_path.exists()
+    mock_git_repo_clone_from.assert_called_once_with(
+        "https://github.com/digital-land/listed-building-collection",
+        to_path=expected_path,
+    )
+    mock_shutil_rmtree.assert_called_once_with(expected_path)
 
 
 def test_download_s3_resources(kwargs, collection_resources_dir, mocker, tmp_path):
