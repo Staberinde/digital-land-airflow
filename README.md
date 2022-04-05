@@ -10,6 +10,7 @@
 * [Overview](#overview)
   * [Note on Terminology](#note-on-terminology)
 * [Prerequisites](#prerequisites)
+* [Deployment](#deployment)
 * [Setting Digital Land Airflow up locally](#setting-digital-land-airflow-up-locally)
   * [Executing automated tests](#executing-automated-tests)
   * [Debugging pipelines](#debugging-pipelines)
@@ -31,6 +32,19 @@ However, in the digital-land-airflow code you'll also see references to `pipelin
 
 * Docker
 * Docker Compose
+
+## Deployment
+
+* Merge commits into upstream `main` branch
+* Wait for [Build and deploy airflow DAG docker image](https://github.com/digital-land/digital-land-airflow/actions/workflows/deploy.yml) action to finish successfully
+* Checkout `main` branch locally, and pull in the new commits from upstream `main`
+* Run the following command, substituting for the environment you wish to deploy to (e.g. staging) into `{environment}`:
+
+```
+aws-vault exec dl-dev -- make ENVIRONMENT={environment} helm-deploy
+```
+
+Currently there are permissioning issues to be solved before deployment can be automated via a CD pipeine
 
 ## Setting Digital Land Airflow up locally
 
