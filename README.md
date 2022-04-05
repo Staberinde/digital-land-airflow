@@ -3,7 +3,7 @@
 [![Build](https://github.com/digital-land/digital-land-airflow/workflows/Continuous%20Integration/badge.svg)](https://github.com/digital-land/digital-land-airflow/actions?query=workflow%3A%22Continuous+Integration%22)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/digital-land/digital-land-airflow/blob/main/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
-[![codecov](https://codecov.io/gh/digital-land/digital-land-airflow/branch/master/graph/badge.svg?token=HXKOXMILGB)](https://codecov.io/gh/digital-land/digital-land-airflow)
+[![codecov](https://codecov.io/gh/digital-land/digital-land-airflow/branch/main/graph/badge.svg?token=HXKOXMILGB)](https://codecov.io/gh/digital-land/digital-land-airflow)
 
 <!-- vim-markdown-toc Marked -->
 
