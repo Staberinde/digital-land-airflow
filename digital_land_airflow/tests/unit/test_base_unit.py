@@ -34,7 +34,6 @@ def test_clone_dir_exists(kwargs, mocker, tmp_path):
         "listed-building-collection"
     )
     expected_path.mkdir(parents=True)
-    kwargs["params"] = {"prev_attempted_tries": 2}
     mocker.patch(
         "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
     )

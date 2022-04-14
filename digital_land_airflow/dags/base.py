@@ -183,7 +183,7 @@ def callable_clone_task(**kwargs):
     # If we rerun a task within the same DAGrun, it will try an reuse the same path
     # We can't really let it use the same repo state right now as it won't match other
     # notions of state e.g. S3
-    if kwargs.get("params", {}).get("prev_attempted_tries", 1) > 1 and repo_path.exists():
+    if repo_path.exists():
         logging.info(f"Removing existing directory on path {repo_path}")
         rmtree(repo_path)
 
