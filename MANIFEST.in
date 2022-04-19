@@ -1,1 +1,3 @@
 graft digital_land_airflow/tests/data
+graft digital_land_airflow/pytest.ini
+prune __pycache__

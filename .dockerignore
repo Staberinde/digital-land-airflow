@@ -4,3 +4,4 @@ build
 .pytest_cache
 __pycache__
 logs
+digital_land_airflow/pytest.ini

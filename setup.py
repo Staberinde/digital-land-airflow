@@ -22,6 +22,7 @@ setup(
     license="MIT",
     url="https://github.com/digital-land/digital-land-airflow",
     packages=find_namespace_packages(include=["digital_land_airflow*"]),
+    package_data={"digital_land_airflow": ["pytest.ini"]},
     include_package_data=True,
     install_requires=[
         # Data fetchers
