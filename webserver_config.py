@@ -9,7 +9,9 @@ from flask_appbuilder.const import AUTH_DB, AUTH_OAUTH
 
 if os.environ.get("OAUTH_APP_ID") and os.environ.get("OAUTH_APP_SECRET"):
     AUTH_TYPE = AUTH_OAUTH
-    FAB_SECURITY_MANAGER_CLASS = "digital_land_airflow.security_manager.GithubOrgAuthorizer"
+    FAB_SECURITY_MANAGER_CLASS = (
+        "digital_land_airflow.security_manager.GithubOrgAuthorizer"
+    )
 else:
     AUTH_TYPE = AUTH_DB
 AUTH_ROLES_SYNC_AT_LOGIN = True  # Checks roles on every login

@@ -18,7 +18,9 @@ def test_clone(kwargs, mocker, tmp_path):
         "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
-    mock_shutil_rmtree = mocker.patch("digital_land_airflow.dags.base.rmtree", side_effect=rmtree)
+    mock_shutil_rmtree = mocker.patch(
+        "digital_land_airflow.dags.base.rmtree", side_effect=rmtree
+    )
     assert not expected_path.exists()
     callable_clone_task(**kwargs)
     assert expected_path.exists()
@@ -38,7 +40,9 @@ def test_clone_dir_exists(kwargs, mocker, tmp_path):
         "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
-    mock_shutil_rmtree = mocker.patch("digital_land_airflow.dags.base.rmtree", side_effect=rmtree)
+    mock_shutil_rmtree = mocker.patch(
+        "digital_land_airflow.dags.base.rmtree", side_effect=rmtree
+    )
     callable_clone_task(**kwargs)
     assert expected_path.exists()
     mock_git_repo_clone_from.assert_called_once_with(
