@@ -299,6 +299,13 @@ def callable_dataset_task(**kwargs):
     resource_pipeline_mapping = _get_resource_pipeline_mapping(kwargs)
     assert len(resource_pipeline_mapping) > 0
     for resource_hash, dataset_names in resource_pipeline_mapping.items():
+        if not resource_dir.joinpath(resource_hash).exists():
+            logging.warning(
+                f"File with name {resource_hash} not present in collection/resource/ directory, "
+                "likely this resource.csv entry was collected and committed in another environment, skipping.."
+            )
+            continue
+
         for dataset_name in dataset_names:
             api = _get_api_instance(kwargs, dataset_name=dataset_name)
             issue_dir = collection_repository_path.joinpath("issue").joinpath(
