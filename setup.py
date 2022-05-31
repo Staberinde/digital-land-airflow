@@ -51,7 +51,7 @@ setup(
             "requests-mock",
             "pytest-mock",
             "pytest-dotenv",
-            "apache-airflow~=2.2.0",
+            "apache-airflow~=2.3.0",
             "deep-dircmp",
         ],
         "dev": [

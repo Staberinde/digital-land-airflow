@@ -40,5 +40,6 @@ helm-login: helm-check
 
 helm-deploy: helm-login
 	helm repo add apache-airflow https://airflow.apache.org/
+	helm repo update
 	helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config
 	# aws eks get-token --cluster-name staging-pipelines-airflow | jq '. | .status.token' | xargs -I {} helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config --kube-token {}
