@@ -1,5 +1,5 @@
 ARG AIRFLOW_TAG
-FROM apache/airflow:${AIRFLOW_TAG:-2.2.3-python3.9}
+FROM apache/airflow:${AIRFLOW_TAG:-2.3.0-python3.9}
 
 USER root
 
