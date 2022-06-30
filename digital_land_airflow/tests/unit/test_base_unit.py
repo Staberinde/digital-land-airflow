@@ -8,7 +8,7 @@ from digital_land_airflow.tasks.filesystem import (
     callable_push_s3_task,
 )
 from digital_land_airflow.tasks.utils import (
-    _get_organisation_csv,
+    get_organisation_csv,
 )
 
 
@@ -17,7 +17,7 @@ def test_clone(kwargs, mocker, tmp_path):
         "listed-building-collection"
     )
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_temporary_directory", return_value=tmp_path
+        "digital_land_airflow.tasks.utils.get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     mock_shutil_rmtree = mocker.patch(
@@ -39,7 +39,7 @@ def test_clone_dir_exists(kwargs, mocker, tmp_path):
     )
     expected_path.mkdir(parents=True)
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_temporary_directory", return_value=tmp_path
+        "digital_land_airflow.tasks.utils.get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     mock_shutil_rmtree = mocker.patch(
@@ -86,7 +86,7 @@ def test_commit(kwargs, mocker, tmp_path):
     tmp_path.joinpath("foo").touch()
     kwargs["paths_to_commit"] = ["foo"]
     foo = mocker.patch(
-        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
+        "digital_land_airflow.tasks.filesystem.get_environment", return_value="production"
     )
     push_mock = MagicMock()
     mock_repo = mocker.patch("digital_land_airflow.tasks.filesystem.Repo")
@@ -129,11 +129,11 @@ def test_push_s3_dataset(
     kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
     mocker.patch(
-        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
+        "digital_land_airflow.tasks.filesystem.get_environment", return_value="production"
     )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_s3_client", return_value=mock_s3_client
+        "digital_land_airflow.tasks.utils.get_s3_client", return_value=mock_s3_client
     )
     # Call
     callable_push_s3_task(**kwargs)
@@ -199,11 +199,11 @@ def test_push_s3_collection(
     ]
     mock_s3_client = MagicMock()
     mocker.patch(
-        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
+        "digital_land_airflow.tasks.filesystem.get_environment", return_value="production"
     )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_s3_client", return_value=mock_s3_client
+        "digital_land_airflow.tasks.utils.get_s3_client", return_value=mock_s3_client
     )
     # Call
     callable_push_s3_task(**kwargs)
@@ -241,7 +241,7 @@ def test_get_organisation_csv_no_env_var(
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
     mocker.patch.dict("os.environ", {}, clear=True)
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_run_temporary_directory",
+        "digital_land_airflow.tasks.utils.get_run_temporary_directory",
         return_value=tmp_path,
     )
     mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
@@ -250,7 +250,7 @@ def test_get_organisation_csv_no_env_var(
     )
 
     # Call
-    response = _get_organisation_csv(kwargs)
+    response = get_organisation_csv(kwargs)
     # Assert
 
     assert response == expected_path
@@ -273,7 +273,7 @@ def test_get_organisation_csv_env_var(
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
     mocker.patch.dict("os.environ", {"ORGANISATION_CSV_PATH": str(expected_path)})
     mocker.patch(
-        "digital_land_airflow.tasks.utils._get_run_temporary_directory",
+        "digital_land_airflow.tasks.utils.get_run_temporary_directory",
         return_value=tmp_path,
     )
     mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
@@ -282,7 +282,7 @@ def test_get_organisation_csv_env_var(
     )
 
     # Call
-    response = _get_organisation_csv(kwargs)
+    response = get_organisation_csv(kwargs)
     # Assert
 
     assert response == expected_path

@@ -3,8 +3,8 @@ import logging
 from airflow.exceptions import AirflowSkipException
 
 from digital_land_airflow.tasks.utils import (
-    _get_collection_repository_path,
-    _get_api_instance,
+    get_collection_repository_path,
+    get_api_instance,
 )
 
 
@@ -13,8 +13,8 @@ def callable_collect_task(**kwargs):
         raise AirflowSkipException(
             "Doing nothing as params['specified_resources'] is set"
         )
-    collection_repository_path = _get_collection_repository_path(kwargs)
-    api = _get_api_instance(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
+    api = get_api_instance(kwargs)
 
     endpoint_path = collection_repository_path.joinpath("collection/endpoint.csv")
     collection_dir = collection_repository_path.joinpath("collection")
@@ -32,8 +32,8 @@ def callable_collection_task(**kwargs):
         raise AirflowSkipException(
             "Doing nothing as params['specified_resources'] is set"
         )
-    api = _get_api_instance(kwargs)
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    api = get_api_instance(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
     collection_dir = collection_repository_path.joinpath("collection")
     logging.info(
         f"Calling pipeline_collection_save_csv_cmd with collection_dir {collection_dir}"

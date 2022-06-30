@@ -8,21 +8,21 @@ from cloudpathlib import CloudPath
 from git import Repo
 
 from digital_land_airflow.tasks.utils import (
-    _get_collection_repository_path,
-    _get_environment,
-    _get_pipeline_resource_mapping,
-    _get_repo_name,
-    _get_resources_name,
-    _get_run_temporary_directory,
-    _upload_directory_to_s3,
-    _upload_files_to_s3
+    get_collection_repository_path,
+    get_environment,
+    get_pipeline_resource_mapping,
+    get_repo_name,
+    get_resources_name,
+    get_run_temporary_directory,
+    upload_directory_to_s3,
+    upload_files_to_s3
 )
 
 
 def callable_clone_task(**kwargs):
     ref_to_checkout = kwargs.get("params", {}).get("git_ref", "HEAD")
-    repo_name = _get_repo_name(kwargs)
-    repo_path = _get_run_temporary_directory(kwargs).joinpath(repo_name)
+    repo_name = get_repo_name(kwargs)
+    repo_path = get_run_temporary_directory(kwargs).joinpath(repo_name)
 
     # If we rerun a task within the same DAGrun, it will try an reuse the same path
     # We can't really let it use the same repo state right now as it won't match other
@@ -45,9 +45,9 @@ def callable_clone_task(**kwargs):
 
 
 def callable_download_s3_resources_task(**kwargs):
-    s3_resource_name = _get_resources_name(kwargs)
+    s3_resource_name = get_resources_name(kwargs)
     collection_s3_bucket = Variable.get("collection_s3_bucket")
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
 
     s3_resource_path = (
         f"s3://{collection_s3_bucket}/{s3_resource_name}/collection/resource/"
@@ -68,13 +68,13 @@ def callable_commit_task(**kwargs):
         raise AirflowSkipException(
             "Doing nothing as params['specified_resources'] is set"
         )
-    environment = _get_environment()
+    environment = get_environment()
     if environment != "production":
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production'"
         )
     paths_to_commit = kwargs["paths_to_commit"]
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
     repo = Repo(collection_repository_path)
 
     if kwargs.get("params", {}).get("git_ref", "HEAD") != "HEAD":
@@ -98,8 +98,8 @@ def callable_commit_task(**kwargs):
 
 
 def callable_push_s3_task(**kwargs):
-    repo_name = _get_repo_name(kwargs)
-    environment = _get_environment()
+    repo_name = get_repo_name(kwargs)
+    environment = get_environment()
     if environment not in ["production", "staging"]:
         raise AirflowSkipException(
             f"Doing nothing as $ENVIRONMENT is {environment} and not 'production' or 'staging'"
@@ -108,8 +108,8 @@ def callable_push_s3_task(**kwargs):
         raise AirflowSkipException(
             "Doing nothing as params['git_ref'] is set and we won't be able to push unless we're at HEAD"
         )
-    collection_repository_path = _get_collection_repository_path(kwargs)
-    pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
+    pipeline_resource_mapping = get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
     for pipeline_name in pipeline_resource_mapping.keys():
         directories_to_push = [
@@ -136,13 +136,13 @@ def callable_push_s3_task(**kwargs):
         ]
 
         for source_directory, destination_directory in directories_to_push:
-            _upload_directory_to_s3(
+            upload_directory_to_s3(
                 directory=collection_repository_path.joinpath(source_directory),
                 destination=destination_directory,
             )
 
         for source_files, destination_directory in files_to_push:
-            _upload_files_to_s3(
+            upload_files_to_s3(
                 files=[
                     collection_repository_path.joinpath(filepath)
                     for filepath in source_files
@@ -152,7 +152,7 @@ def callable_push_s3_task(**kwargs):
 
 
 def callable_working_directory_cleanup_task(**kwargs):
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
     if kwargs.get("params", {}).get(
         "delete_working_directory_on_pipeline_success", False
     ):

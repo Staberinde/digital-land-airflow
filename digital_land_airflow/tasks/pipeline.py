@@ -1,28 +1,28 @@
 import logging
 
 from digital_land_airflow.tasks.utils import (
-    _get_api_instance,
-    _get_collection_name,
-    _get_resource_pipeline_mapping,
-    _get_organisation_csv,
+    get_api_instance,
+    get_collection_name,
+    get_resource_pipeline_mapping,
+    get_organisation_csv,
     is_run_harmonised_stage,
-    _get_collection_repository_path,
-    _get_pipeline_resource_mapping,
-    _get_temporary_directory
+    get_collection_repository_path,
+    get_pipeline_resource_mapping,
+    get_temporary_directory
 )
 
 
 def callable_dataset_task(**kwargs):
-    collection_name = _get_collection_name(kwargs)
+    collection_name = get_collection_name(kwargs)
     save_harmonised = is_run_harmonised_stage(collection_name)
-    api = _get_api_instance(kwargs)
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    api = get_api_instance(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
 
     collection_dir = collection_repository_path.joinpath("collection")
-    organisation_csv_path = _get_organisation_csv(kwargs)
+    organisation_csv_path = get_organisation_csv(kwargs)
     resource_dir = collection_dir.joinpath("resource")
 
-    resource_pipeline_mapping = _get_resource_pipeline_mapping(kwargs)
+    resource_pipeline_mapping = get_resource_pipeline_mapping(kwargs)
     assert len(resource_pipeline_mapping) > 0
     for resource_hash, dataset_names in resource_pipeline_mapping.items():
         if not resource_dir.joinpath(resource_hash).exists():
@@ -33,7 +33,7 @@ def callable_dataset_task(**kwargs):
             continue
 
         for dataset_name in dataset_names:
-            api = _get_api_instance(kwargs, dataset_name=dataset_name)
+            api = get_api_instance(kwargs, dataset_name=dataset_name)
             issue_dir = collection_repository_path.joinpath("issue").joinpath(
                 dataset_name
             )
@@ -71,7 +71,7 @@ def callable_dataset_task(**kwargs):
                 "save_harmonised": save_harmonised,
                 "column_field_dir": str(column_field_dir),
                 "dataset_resource_dir": str(dataset_resource_dir),
-                "custom_temp_dir": str(_get_temporary_directory()),
+                "custom_temp_dir": str(get_temporary_directory()),
             }
             log_string = (
                 f"digital-land --pipeline-name {dataset_name} pipeline "
@@ -92,16 +92,16 @@ def callable_dataset_task(**kwargs):
 
 
 def callable_build_dataset_task(**kwargs):
-    collection_repository_path = _get_collection_repository_path(kwargs)
+    collection_repository_path = get_collection_repository_path(kwargs)
 
     dataset_path = collection_repository_path.joinpath("dataset")
     dataset_path.mkdir()
-    organisation_csv_path = _get_organisation_csv(kwargs)
+    organisation_csv_path = get_organisation_csv(kwargs)
 
-    pipeline_resource_mapping = _get_pipeline_resource_mapping(kwargs)
+    pipeline_resource_mapping = get_pipeline_resource_mapping(kwargs)
     assert len(pipeline_resource_mapping) > 0
     for dataset_name, resource_hash_list in pipeline_resource_mapping.items():
-        api = _get_api_instance(kwargs, dataset_name=dataset_name)
+        api = get_api_instance(kwargs, dataset_name=dataset_name)
         potential_input_paths = [
             collection_repository_path.joinpath("transformed")
             .joinpath(dataset_name)

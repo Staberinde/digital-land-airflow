@@ -6,8 +6,8 @@ from pendulum.tz import timezone
 
 from digital_land_airflow.dags.utils import (
     get_all_collection_names,
-    _get_dag_cronstring,
-    _get_dag_start_date,
+    get_dag_cronstring,
+    get_dag_start_date,
     kebab_to_pascal_case,
 
 )
@@ -34,9 +34,9 @@ from digital_land_airflow.tasks.utils import (
 for collection_name in get_all_collection_names():
     with DAG(
         collection_name,
-        start_date=_get_dag_start_date(),
+        start_date=get_dag_start_date(),
         timetable=CronDataIntervalTimetable(
-            _get_dag_cronstring(), timezone=timezone("Europe/London")
+            get_dag_cronstring(), timezone=timezone("Europe/London")
         ),
         catchup=False,
         render_template_as_native_obj=True,

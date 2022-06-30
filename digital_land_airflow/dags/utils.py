@@ -7,17 +7,17 @@ from humps import pascalize
 from pendulum.tz import timezone
 from digital_land.specification import specification_path
 
-from digital_land_airflow.tasks.utils import _get_environment
+from digital_land_airflow.tasks.utils import get_environment
 
 DATE_DEPLOYED_ON_STAGING = datetime(2022, 3, 11, 0, 0, tzinfo=timezone("Europe/London"))
 
 
-def _get_dag_cronstring():
+def get_dag_cronstring():
     return os.environ.get("PIPELINE_RUN_CRON_STRING")
 
 
-def _get_dag_start_date():
-    environment = _get_environment()
+def get_dag_start_date():
+    environment = get_environment()
     if environment == "staging":
         return DATE_DEPLOYED_ON_STAGING
     else:
