@@ -6,10 +6,12 @@ from subprocess import run, CalledProcessError
 
 from deep_dircmp import DeepDirCmp
 
-from digital_land_airflow.dags.base import (
-    callable_build_dataset_task,
+from digital_land_airflow.tasks.collector import (
     callable_collect_task,
     callable_collection_task,
+)
+from digital_land_airflow.tasks.pipeline import (
+    callable_build_dataset_task,
     callable_dataset_task,
 )
 
@@ -197,7 +199,7 @@ def test_dataset(
 
     # Call
     with mocker.patch(
-        "digital_land_airflow.dags.base._get_organisation_csv",
+        "digital_land_airflow.tasks.pipeline._get_organisation_csv",
         return_value=data_dir.joinpath("organisation.csv"),
     ):
         callable_dataset_task(**kwargs)
@@ -231,7 +233,7 @@ def test_dataset_specified_resources(
 
     # Call
     with mocker.patch(
-        "digital_land_airflow.dags.base._get_organisation_csv",
+        "digital_land_airflow.tasks.pipeline._get_organisation_csv",
         return_value=data_dir.joinpath("organisation.csv"),
     ):
         callable_dataset_task(**kwargs_specified_resources)

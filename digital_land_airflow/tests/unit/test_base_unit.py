@@ -1,11 +1,13 @@
 from shutil import copy, rmtree
 from unittest.mock import call, Mock, MagicMock
 
-from digital_land_airflow.dags.base import (
+from digital_land_airflow.tasks.filesystem import (
     callable_clone_task,
     callable_commit_task,
     callable_download_s3_resources_task,
     callable_push_s3_task,
+)
+from digital_land_airflow.tasks.utils import (
     _get_organisation_csv,
 )
 
@@ -15,11 +17,11 @@ def test_clone(kwargs, mocker, tmp_path):
         "listed-building-collection"
     )
     mocker.patch(
-        "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
+        "digital_land_airflow.tasks.utils._get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     mock_shutil_rmtree = mocker.patch(
-        "digital_land_airflow.dags.base.rmtree", side_effect=rmtree
+        "digital_land_airflow.tasks.filesystem.rmtree", side_effect=rmtree
     )
     assert not expected_path.exists()
     callable_clone_task(**kwargs)
@@ -37,11 +39,11 @@ def test_clone_dir_exists(kwargs, mocker, tmp_path):
     )
     expected_path.mkdir(parents=True)
     mocker.patch(
-        "digital_land_airflow.dags.base._get_temporary_directory", return_value=tmp_path
+        "digital_land_airflow.tasks.utils._get_temporary_directory", return_value=tmp_path
     )
     mock_git_repo_clone_from = mocker.patch("git.Repo.clone_from")
     mock_shutil_rmtree = mocker.patch(
-        "digital_land_airflow.dags.base.rmtree", side_effect=rmtree
+        "digital_land_airflow.tasks.filesystem.rmtree", side_effect=rmtree
     )
     callable_clone_task(**kwargs)
     assert expected_path.exists()
@@ -83,11 +85,11 @@ def test_commit(kwargs, mocker, tmp_path):
     # Setup
     tmp_path.joinpath("foo").touch()
     kwargs["paths_to_commit"] = ["foo"]
-    mocker.patch(
-        "digital_land_airflow.dags.base._get_environment", return_value="production"
+    foo = mocker.patch(
+        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
     )
     push_mock = MagicMock()
-    mock_repo = mocker.patch("digital_land_airflow.dags.base.Repo")
+    mock_repo = mocker.patch("digital_land_airflow.tasks.filesystem.Repo")
     mock_repo.configure_mock(
         **{
             "return_value.remotes.__getitem__.return_value.urls": ["iamaurl"],
@@ -127,11 +129,11 @@ def test_push_s3_dataset(
     kwargs["files_to_push"] = []
     mock_s3_client = MagicMock()
     mocker.patch(
-        "digital_land_airflow.dags.base._get_environment", return_value="production"
+        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
     )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch(
-        "digital_land_airflow.dags.base._get_s3_client", return_value=mock_s3_client
+        "digital_land_airflow.tasks.utils._get_s3_client", return_value=mock_s3_client
     )
     # Call
     callable_push_s3_task(**kwargs)
@@ -197,11 +199,11 @@ def test_push_s3_collection(
     ]
     mock_s3_client = MagicMock()
     mocker.patch(
-        "digital_land_airflow.dags.base._get_environment", return_value="production"
+        "digital_land_airflow.tasks.filesystem._get_environment", return_value="production"
     )
     mocker.patch("airflow.models.Variable.get", return_value="iamacollections3bucket")
     mocker.patch(
-        "digital_land_airflow.dags.base._get_s3_client", return_value=mock_s3_client
+        "digital_land_airflow.tasks.utils._get_s3_client", return_value=mock_s3_client
     )
     # Call
     callable_push_s3_task(**kwargs)
@@ -239,7 +241,7 @@ def test_get_organisation_csv_no_env_var(
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
     mocker.patch.dict("os.environ", {}, clear=True)
     mocker.patch(
-        "digital_land_airflow.dags.base._get_run_temporary_directory",
+        "digital_land_airflow.tasks.utils._get_run_temporary_directory",
         return_value=tmp_path,
     )
     mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
@@ -271,7 +273,7 @@ def test_get_organisation_csv_env_var(
     fake_organisation_csv_url = "https://iamanorganisationcsvurl"
     mocker.patch.dict("os.environ", {"ORGANISATION_CSV_PATH": str(expected_path)})
     mocker.patch(
-        "digital_land_airflow.dags.base._get_run_temporary_directory",
+        "digital_land_airflow.tasks.utils._get_run_temporary_directory",
         return_value=tmp_path,
     )
     mocker.patch("airflow.models.Variable.get", return_value=fake_organisation_csv_url)
