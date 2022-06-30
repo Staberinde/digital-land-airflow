@@ -18,6 +18,9 @@ docker-push: docker-check docker-login
 	docker push $(BUILD_TAG)
 	docker push $(BUILD_IMAGE):latest
 
+docker-pull: docker-check docker-login
+	docker pull $(BUILD_TAG)
+
 docker-test: docker-check
 	docker run -t --user airflow --entrypoint bash $(BUILD_TAG) -c 'pytest $$(python -c "import inspect, os; from digital_land_airflow import tests; print(os.path.dirname(inspect.getfile(tests)))") -p digital_land_airflow.tests.fixtures.base'
 

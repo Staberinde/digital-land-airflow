@@ -6,10 +6,12 @@ from subprocess import run, CalledProcessError
 
 from deep_dircmp import DeepDirCmp
 
-from digital_land_airflow.dags.base import (
-    callable_build_dataset_task,
+from digital_land_airflow.tasks.collector import (
     callable_collect_task,
     callable_collection_task,
+)
+from digital_land_airflow.tasks.pipeline import (
+    callable_build_dataset_task,
     callable_dataset_task,
 )
 
@@ -122,7 +124,7 @@ def _assert_tree_identical(dir1, dir2, only=None):
     )
 
 
-def _get_filename_without_suffix_from_path(path):
+def get_filename_without_suffix_from_path(path):
     return path.name[: -len("".join(path.suffixes))]
 
 
@@ -161,7 +163,7 @@ def test_collection(
         log_csv = DictReader(log_file)
         logs = list(log_csv)
         assert {log["endpoint"] for log in logs} == set(
-            _get_filename_without_suffix_from_path(path)
+            get_filename_without_suffix_from_path(path)
             for path in collection_payload_dir.iterdir()
         )
 
@@ -197,7 +199,7 @@ def test_dataset(
 
     # Call
     with mocker.patch(
-        "digital_land_airflow.dags.base._get_organisation_csv",
+        "digital_land_airflow.tasks.pipeline.get_organisation_csv",
         return_value=data_dir.joinpath("organisation.csv"),
     ):
         callable_dataset_task(**kwargs)
@@ -231,7 +233,7 @@ def test_dataset_specified_resources(
 
     # Call
     with mocker.patch(
-        "digital_land_airflow.dags.base._get_organisation_csv",
+        "digital_land_airflow.tasks.pipeline.get_organisation_csv",
         return_value=data_dir.joinpath("organisation.csv"),
     ):
         callable_dataset_task(**kwargs_specified_resources)
