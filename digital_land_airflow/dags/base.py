@@ -1,6 +1,8 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.models import Param
+from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.sensors.external_task import ExternalTaskSensor
 from airflow.timetables.interval import CronDataIntervalTimetable
 from pendulum.tz import timezone
 
@@ -19,6 +21,7 @@ from digital_land_airflow.tasks.filesystem import (
     callable_clone_task,
     callable_commit_task,
     callable_download_s3_resources_task,
+    callable_get_datasets_from_filesystem,
     callable_push_s3_task,
     callable_working_directory_cleanup_task
 )
@@ -27,11 +30,22 @@ from digital_land_airflow.tasks.pipeline import (
     callable_build_dataset_task
 )
 from digital_land_airflow.tasks.utils import (
-    is_run_harmonised_stage
+    is_run_harmonised_stage,
+    get_temporary_directory
 )
 
+sensors = {}
 
-for collection_name in get_all_collection_names():
+
+def callable_pass_dataset_dir_to_builders(**kwargs):
+    collection_repository_path = get_collection_repository_path(kwargs)
+
+    dataset_path = collection_repository_path.joinpath("dataset")
+    assert dataset_path.exists()
+    kwargs["ti"].xcom_push("dataset_path", str(dataset_path))
+
+
+def instantiate_dag(collection_name: str) -> DAG:
     with DAG(
         collection_name,
         start_date=get_dag_start_date(),
@@ -141,6 +155,12 @@ for collection_name in get_all_collection_names():
             trigger_rule="none_failed",
         )
 
+        pass_dataset_dir_to_builders = PythonOperator(
+            task_id="pass_dataset_dir_to_builders",
+            python_callable=callable_pass_dataset_dir_to_builders,
+            trigger_rule="none_failed",
+        )
+
         clone >> download_s3_resources
         download_s3_resources >> collect
         collect >> commit_collect
@@ -152,6 +172,7 @@ for collection_name in get_all_collection_names():
         dataset >> build_dataset
         build_dataset >> push_s3_dataset
         push_s3_dataset >> working_directory_cleanup
+        working_directory_cleanup >> pass_dataset_dir_to_builders
 
         if is_run_harmonised_stage(collection_name):
             commit_harmonised = PythonOperator(
@@ -162,5 +183,38 @@ for collection_name in get_all_collection_names():
             build_dataset >> commit_harmonised
             commit_harmonised >> working_directory_cleanup
 
+
+        return InstantiatedDag
+
+
+with DAG(
+    "entity_dag",
+    start_date=get_dag_start_date(),
+
+) as entity_dag:
+
+    get_datasets_from_filesystem = PythonOperator(
+        task_id="working_directory_cleanup",
+        python_callable=callable_get_datasets_from_filesystem,
+    )
+
+    for collection_name in get_all_collection_names():
         # Airflow likes to be able to find its DAG's as module scoped variables
-        globals()[f"{kebab_to_pascal_case(collection_name)}Dag"] = InstantiatedDag
+        globals()[f"{kebab_to_pascal_case(collection_name)}Dag"] = instantiate_dag(collection_name)
+        sensors[collection_name] = ExternalTaskSensor(
+            external_dag_id=collection_name,
+            # Can leave out task_id maybe so it waits for dag?
+            external_task_id=callable_pass_dataset_dir_to_builders.__name__,
+            allowed_states=["success", "failed"]
+        )
+    list(sensors.values()) >> get_datasets_from_filesystem
+
+    entity_builder = DockerOperator(
+        image="public.ecr.aws/l6z6v3j6/entity-builder",
+        mount_tmp_dir=True,
+        tmp_dir=get_temporary_directory(),
+        tty=True,
+        xcomm_all=True,
+        retrieve_output_path="/src/dataset/entity.sqlite3",
+    )
+    get_datasets_from_filesystem >> entity_builder

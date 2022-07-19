@@ -52,6 +52,7 @@ setup(
             "pytest-mock",
             "pytest-dotenv",
             "apache-airflow~=2.3.0",
+            "apache-airflow-providers-docker~=3.1.0",
             "deep-dircmp",
         ],
         "dev": [

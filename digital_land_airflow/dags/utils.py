@@ -5,7 +5,7 @@ from pathlib import Path
 
 from humps import pascalize
 from pendulum.tz import timezone
-from digital_land.specification import specification_path
+from digital_land.specification import Specification, specification_path
 
 from digital_land_airflow.tasks.utils import get_environment
 
@@ -35,3 +35,11 @@ def get_all_collection_names():
             Path(specification_path).joinpath("collection.csv").open()
         )
     ]
+
+
+def get_datasets_from_collection(collection_name: str) -> filter:
+    spec = Specification(specification_path)
+    return filter(
+        lambda dataset_name: spec.dataset[dataset_name]["collection"] == collection_name,
+        spec.dataset_names
+    )
