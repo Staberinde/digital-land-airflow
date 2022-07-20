@@ -54,7 +54,10 @@ class GithubOrgAuthorizer(AirflowSecurityManager):
             org_data = remote_app.get("user/orgs")
             orgs = org_parser(org_data.json())
             roles = map_roles(orgs)
-            name_list = user_data.get("name", "").split(" ")
+            if user_data.get("name"):
+                name_list = user_data["name"].split(" ")
+            else:
+                name_list = ["Anony", "mouse"]
             if len(name_list) >= 2:
                 first_name = name_list[0]
                 last_name = name_list[-1]
