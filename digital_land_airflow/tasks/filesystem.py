@@ -2,16 +2,10 @@ from datetime import datetime
 import logging
 from shutil import rmtree
 
-import requests
-
 from airflow.exceptions import AirflowSkipException
 from airflow.models import Variable
 from cloudpathlib import CloudPath
 from git import Repo
-from digital_land_airflow.dags.utils import (
-    get_all_collection_names,
-    get_datasets_from_collection,
-)
 from digital_land_airflow.tasks.utils import (
     get_collection_repository_path,
     get_environment,
@@ -175,28 +169,3 @@ def callable_working_directory_cleanup_task(**kwargs):
             f"Not removing directory structure {collection_repository_path} as "
             f"delete_working_directory_on_pipeline_success={kwargs['params']['delete_working_directory_on_pipeline_success']}"
         )
-
-
-def callable_get_entity_builder_inputs(**kwargs):
-    for collection_name in get_all_collection_names():
-        for dataset_name in get_datasets_from_collection(collection_name):
-            inputs_dir = get_run_temporary_directory(kwargs).joinpath(
-                "inputs"
-            )
-            destination_csv_path = inputs_dir.joinpath(
-                f"{dataset_name}.csv"
-            )
-            download_from_s3(
-                "/dataset/",
-                destination_csv_path,
-                collection_name=collection_name,
-                **kwargs
-            )
-            destination_old_entity_path = inputs_dir.joinpath(f"{dataset_name}-old-entity.csv")
-            with destination_old_entity_path.open("w+") as f:
-                old_entity_url = f"https://raw.githubusercontent.com/digital-land/{collection_name}-collection/main/pipeline/old-entity.csv"
-                response = requests.get(old_entity_url)
-                response.raise_for_status()
-                f.write(str(response.content))
-
-    return inputs_dir

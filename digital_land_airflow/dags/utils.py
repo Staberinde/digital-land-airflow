@@ -35,11 +35,3 @@ def get_all_collection_names():
             Path(specification_path).joinpath("collection.csv").open()
         )
     ]
-
-
-def get_datasets_from_collection(collection_name: str) -> filter:
-    spec = Specification(specification_path)
-    return filter(
-        lambda dataset_name: spec.dataset[dataset_name]["collection"] == collection_name,
-        spec.dataset_names
-    )

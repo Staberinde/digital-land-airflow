@@ -1,3 +1,5 @@
+import os
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.models import Param
@@ -21,7 +23,6 @@ from digital_land_airflow.tasks.filesystem import (
     callable_clone_task,
     callable_commit_task,
     callable_download_s3_resources_task,
-    callable_get_datasets_from_filesystem,
     callable_push_s3_task,
     callable_working_directory_cleanup_task
 )
@@ -193,11 +194,6 @@ with DAG(
 
 ) as entity_dag:
 
-    get_datasets_from_filesystem = PythonOperator(
-        task_id="working_directory_cleanup",
-        python_callable=callable_get_datasets_from_filesystem,
-    )
-
     for collection_name in get_all_collection_names():
         # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{kebab_to_pascal_case(collection_name)}Dag"] = instantiate_dag(collection_name)
@@ -207,7 +203,6 @@ with DAG(
             external_task_id=callable_pass_dataset_dir_to_builders.__name__,
             allowed_states=["success", "failed"]
         )
-    list(sensors.values()) >> get_datasets_from_filesystem
 
     entity_builder = DockerOperator(
         image="public.ecr.aws/l6z6v3j6/entity-builder",
@@ -216,5 +211,14 @@ with DAG(
         tty=True,
         xcomm_all=True,
         retrieve_output_path="/src/dataset/entity.sqlite3",
+        private_environment={
+            "AWS_ACCESS_KEY_ID": os.environ["AWS_ACCESS_KEY_ID"],
+            "AWS_DEFAULT_REGION": os.environ["AWS_DEFAULT_REGION"],
+            "AWS_REGION": os.environ["AWS_REGION"],
+            "AWS_SECRET_ACCESS_KEY": os.environ["AWS_SECRET_ACCESS_KEY"],
+            "AWS_SECURITY_TOKEN": os.environ["AWS_SECURITY_TOKEN"],
+            "AWS_SESSION_EXPIRATION": os.environ["AWS_SESSION_EXPIRATION"],
+            "AWS_SESSION_TOKEN": os.environ["AWS_SESSION_TOKEN"],
+        }
     )
-    get_datasets_from_filesystem >> entity_builder
+    list(sensors.values()) >> entity_builder
