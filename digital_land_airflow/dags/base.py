@@ -221,4 +221,20 @@ with DAG(
             "AWS_SESSION_TOKEN": os.environ["AWS_SESSION_TOKEN"],
         }
     )
+
+    push_s3_dataset = PythonOperator(
+        task_id="push_s3_dataset",
+        python_callable=callable_push_s3_task,
+        op_kwargs={
+            "directories_to_push": [
+                (
+                    "entity-builder/dataset",
+                    "entity-builder/dataset"
+                ),
+            ],
+            "files_to_push": [],
+        },
+    )
+
     list(sensors.values()) >> entity_builder
+    entity_builder >> push_s3_dataset
