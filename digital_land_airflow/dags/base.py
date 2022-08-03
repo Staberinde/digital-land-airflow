@@ -2,7 +2,7 @@ import os
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.models import Param
+from airflow.models import Param, Variable
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.sensors.external_task import ExternalTaskSensor
 from airflow.timetables.interval import CronDataIntervalTimetable
@@ -189,7 +189,7 @@ def instantiate_dag(collection_name: str) -> DAG:
 
 
 with DAG(
-    "entity_dag",
+    "entity_builder",
     start_date=get_dag_start_date(),
 
 ) as entity_dag:
@@ -198,6 +198,7 @@ with DAG(
         # Airflow likes to be able to find its DAG's as module scoped variables
         globals()[f"{kebab_to_pascal_case(collection_name)}Dag"] = instantiate_dag(collection_name)
         sensors[collection_name] = ExternalTaskSensor(
+            task_id=f"entity_builder_trigger_for_{collection_name}",
             external_dag_id=collection_name,
             # Can leave out task_id maybe so it waits for dag?
             external_task_id=callable_pass_dataset_dir_to_builders.__name__,
@@ -205,12 +206,16 @@ with DAG(
         )
 
     entity_builder = DockerOperator(
+        task_id="entity_builder",
         image="public.ecr.aws/l6z6v3j6/entity-builder",
         mount_tmp_dir=True,
-        tmp_dir=get_temporary_directory(),
+        tmp_dir=str(get_temporary_directory()),
         tty=True,
-        xcomm_all=True,
+        xcom_all=True,
         retrieve_output_path="/src/dataset/entity.sqlite3",
+        environment={
+            "COLLECTION_DATASET_BUCKET_NAME": Variable.get("collection_s3_bucket")
+        },
         private_environment={
             "AWS_ACCESS_KEY_ID": os.environ["AWS_ACCESS_KEY_ID"],
             "AWS_DEFAULT_REGION": os.environ["AWS_DEFAULT_REGION"],
