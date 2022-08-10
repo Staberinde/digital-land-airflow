@@ -39,10 +39,8 @@ endif
 
 helm-login: helm-check
 	aws eks update-kubeconfig --region eu-west-2 --name $(ENVIRONMENT)-planning-data
-	# aws eks update-kubeconfig --region eu-west-2 --name $(ENVIRONMENT)-planning-data --role-arn arn:aws:iam::955696714113:role/staging-eks-pipeline-node-group-role
 
 helm-deploy: helm-login
 	helm repo add apache-airflow https://airflow.apache.org/
 	helm repo update
 	helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config
-	# aws eks get-token --cluster-name staging-planning-data | jq '. | .status.token' | xargs -I {} helm upgrade airflow-stable apache-airflow/airflow --namespace $(ENVIRONMENT)-pipelines --reuse-values --set images.airflow.tag=$(GIT_COMMIT) --kubeconfig ~/.kube/config --kube-token {}
